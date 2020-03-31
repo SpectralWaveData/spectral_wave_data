@@ -7,7 +7,7 @@
 This is the main repository of the Github organization 
 [SpectralWaveData](https://github.com/SpectralWaveData).
 
-![alt text](docs/source/figures/repository_readme_600x487.png)
+![alt text](docs/source/figures/swd_scheme.png)
 
 Comprehensive [documentation](https://spectral-wave-data.readthedocs.io/) 
 is hosted on [ReadTheDocs](https://readthedocs.org/).

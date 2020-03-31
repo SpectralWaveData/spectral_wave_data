@@ -5,7 +5,7 @@ An API for ocean wave kinematics
 This Python package is part of the spectral_wave_data API developed by
 the GitHub organization [SpectralWaveData](https://github.com/SpectralWaveData).
 
-![alt text](https://github.com/SpectralWaveData/spectral_wave_data/blob/master/docs/source/figures/repository_readme_600x487.png)
+![alt text](https://raw.githubusercontent.com/SpectralWaveData/spectral_wave_data/master/docs/source/figures/swd_scheme.png)
 
 
 ## Purpose and goals
@@ -77,12 +77,12 @@ Typical usage in a Python script or program::
     zeta = swd.elev(x=5.3, y=12.4)
     acc_e = swd.acc_euler(x=7.3, y=-3.4, z=-8.3)
     acc_p = swd.acc_particle(x=7.3, y=-3.4, z=-8.3)
-    phi2 = grad_phi_2nd(x=7.3, y=-3.4, z=-8.3)
+    phi2 = swd.grad_phi_2nd(x=7.3, y=-3.4, z=-8.3)
     
     print("Surface elevation at (x, y) = ", zeta)
     print("Euler (local) acceleration in x-direction at (x,y,z) = ", acc_e.x)
     print("Particle acceleration in x-direction at (x,y,z) = ", acc_p.x)
-    print("d^2(potential)/dxdy at (x,y,z) = ", phi2.xy)
+    print("d^2(potential)/dxdz at (x,y,z) = ", phi2.xz)
 
 Meta data from an actual SWD file can be extracted using the console script swd_meta::
 
@@ -134,6 +134,7 @@ Due to the complexity of building from source we refer to the
 [documentation](https://spectral-wave-data.readthedocs.io/) and
 the [spectral_wave_data](https://github.com/SpectralWaveData/spectral_wave_data)
 GitHub repository for related instructions and download of the source code.
+
 
 ### Installation problems?
 
