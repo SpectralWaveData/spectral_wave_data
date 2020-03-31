@@ -9,7 +9,7 @@ This is the main repository of the Github organization
 
 ![alt text](docs/source/figures/repository_readme_600x487.png)
 
-Comprehensive [documentation](https://readthedocs.org/spectral_wave_data) 
+Comprehensive [documentation](https://spectral-wave-data.readthedocs.io/) 
 is hosted on [ReadTheDocs](https://readthedocs.org/).
 
 ## Purpose and goals
@@ -79,7 +79,7 @@ lessons learned this open source library has been created.
 ## Programs and tools
 
 Some programs and tools related to utilizing this API is described in the
-tools section of the [documentation](https://readthedocs.org/spectral_wave_data).
+tools section of the [documentation](https://spectral-wave-data.readthedocs.io/).
 
 ## Reference Wave fields
 
@@ -94,7 +94,8 @@ to the site.
 
 ## Documentation
 
-Detailed documentation describing theory and implementation is hosted 
+Detailed [documentation](https://spectral-wave-data.readthedocs.io/)
+describing theory and implementation is hosted 
 on the [ReadTheDocs](https://readthedocs.org/) web site. The associated 
 [Sphinx](http://www.sphinx-doc.org/) documents are located in the docs
 directory of __spectral_wave_data__.
