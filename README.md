@@ -1,5 +1,9 @@
 # spectral_wave_data
 
+**NOTE: Documentation and Binaries are not uploaded yet!**
+
+**Public release is expected 2020.04.01.**
+
 This is the main repository of the Github organization 
 [SpectralWaveData](https://github.com/SpectralWaveData).
 
