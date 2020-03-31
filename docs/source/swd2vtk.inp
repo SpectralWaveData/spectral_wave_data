@@ -1,0 +1,125 @@
+&swd2vtk   ! Mandatory namelist tag
+!------------------------------------------------------------------------
+! Files
+!------------------------------------------------------------------------
+file_swd = 'stream_wave_H18.50m_T12.79s_D32.00m_Nfft50.swd'
+path_vtk = 'vtk_files' ! A subdirectory for all VTK files
+vtk_form = 'raw'   ! 'ascii', 'binary' or 'raw'
+!------------------------------------------------------------------------
+! Time and speed parameters
+!------------------------------------------------------------------------
+tstart = 0.0   ! Start animation at t_application = tstart
+tend = 6.0     ! End animation at t_application = tend
+dt = 0.2       ! Animation time step. (Only dt>0 supported)
+speedx = 0.0   ! Speed of vtk domain [m/s] along positive x-axis
+time_fmt = '(f0.2)'  ! Fortran formatting of animation time
+!------------------------------------------------------------------------
+! Swd constructor parameters
+!------------------------------------------------------------------------
+x0_swd = 0.0       ! x0 seed for swd constructor
+y0_swd = 0.0       ! y0 seed for swd constructor
+t0_swd = 0.0       ! t0 seed for swd constructor
+beta_swd = 180.0   ! Angle between x-axis of SWD and application system.
+impl_swd = 0       ! Select SWD implementation class (0=automatic)
+norder_swd = 0     ! Apply default (shape specific) expansion above z=0.
+ipol_swd = 0       ! Temporal interpolation scheme (Default C^2-continous)
+nsumx_swd = -1     ! Number of applied spectral components in x-dir (<0 => Apply all)
+nsumy_swd = -1     ! Number of applied spectral components in y-dir (<0 => Apply all)
+dc_bias_swd = .true. ! Include zero frequency terms if true
+rho_swd = 1025.0     ! Density of water  (rho_swd=0.102 => meter water column pressure)
+!------------------------------------------------------------------------
+! Scalar fields to include
+!------------------------------------------------------------------------
+scl_prs = T     ! Wave pressure
+scl_stream = T  ! Stream function
+scl_phi = T     ! Potential distribution
+scl_phi_t = T   ! d(phi)/dt Earth fixed Euler derivative
+scl_phi_xx = T  ! d^2(phi)/dx^2
+scl_phi_xy = T  ! d^2(phi)/dxdy
+scl_phi_xz = F  ! d^2(phi)/dxdz
+scl_phi_yy = T  ! d^2(phi)/dy^2
+scl_phi_yz = F  ! d^2(phi)/dydz
+scl_phi_zz = T  ! d^2(phi)/dz^2
+scl_elev  = T   ! elev       (only on free surface sheet)
+scl_elev_t = T  ! d(elev)/dt (only on free surface sheet)
+scl_elev_x = T  ! d(elev)/dx (only on free surface sheet)
+scl_elev_y = T  ! d(elev)/dy (only on free surface sheet)
+scl_elev_xx = T ! d^2(elev)/dx^2 (only on free surface sheet)
+scl_elev_xy = F ! d^2(elev)/dxdy (only on free surface sheet)
+scl_elev_yy = T ! d^2(elev)/dy^2 (only on free surface sheet)
+!------------------------------------------------------------------------
+! Vector fields to include
+!------------------------------------------------------------------------
+vec_vel = T     ! Particle velocity
+vec_acc_e = T   ! Local acceleration (Euler)
+vec_acc_p = T   ! Particle acceleration (Lagrange)
+!------------------------------------------------------------------------
+! Free surface sheet (a rectangular domain)
+!------------------------------------------------------------------------
+if_free_surf = T   ! T=True, F=False
+xc_free_surf = 0.0    ! X-center of free surf sheet (in vtx domain coordinates)
+yc_free_surf = 0.0    ! Y-center of free surf sheet (in vtx domain coordinates)
+xlen_free_surf = 29.2 ! Length of domain in x-dir
+ylen_free_surf = 29.2  ! Length of domain in y-dir
+npanx_free_surf = 20 ! Number of panels in x-dir
+npany_free_surf = 2 ! Number of panels in y-dir
+!------------------------------------------------------------------------
+! Sea floor (a rectangular domain, only used for finite depth calculations)
+!------------------------------------------------------------------------
+if_floor = T  ! T=True, F=False
+xc_floor = 0.0    ! X-center of sea floor sheet (in vtx domain coordinates)
+yc_floor = 0.0    ! Y-center of sea floor sheet (in vtx domain coordinates)
+xlen_floor = 29.2 ! Length of domain in x-dir
+ylen_floor = 29.2  ! Length of domain in y-dir
+npanx_floor = 10 ! Number of panels in x-dir
+npany_floor = 2 ! Number of panels in y-dir
+!------------------------------------------------------------------------
+! 3D-volume domain (a rectangular domain extruded to free surface)
+!------------------------------------------------------------------------
+if_vol3d = T   ! T=True, F=False
+xc_vol3d = -24.0    ! X-center of 3d-volume (in vtx domain coordinates)
+yc_vol3d = 0.0    ! Y-center of 3d-volume (in vtx domain coordinates)
+zmin_vol3d = -8.0 ! 3d-volume only include water above this z-level.
+xlen_vol3d = 8.0 ! Length of 3d-volume in x-dir
+ylen_vol3d = 29.2 ! Length of 3d-volume in y-dir
+npanx_vol3d = 3 ! Number of 3d-volume cells in x-dir
+npany_vol3d = 4 ! Number of 3d-volume cells in y-dir
+npanz_vol3d = 5 ! Number of 3d-volume cells in z-dir
+z_exp_vol3d = 1.1  ! 1.0=constant spaceing in z-dir, >1.0 => larger cells at increasing depth
+!------------------------------------------------------------------------
+! Vertical cuts (sheet extending from z=z_vcut to free surface)
+!------------------------------------------------------------------------
+n_vcut = 2       ! Number of vertical cuts
+xc_vcut = 0.0  0.0  ! x-position of center of each sheet.
+yc_vcut = 0.0  0.0  ! y-position of center of each sheet.
+zmin_vcut = -10.0 -10.0  ! Lowest z points of each sheet.
+len_vcut = 29.2  29.2 ! Horizontal length of each sheet
+beta_vcut = 90.0  0.0  ! Angle (deg) between sheet normal vector and x-axis. (e.g. 0.0 => yz plane, 90.0 => xz plane)
+npanxy_vcut = 10 10 ! Number of cells in horizontal direction for each sheet
+npanz_vcut = 20 20  ! Number of cells in vertical direction for each sheet
+z_exp_vcut = 1.1  1.1  ! 1.0=constant spaceing in z-dir, >1.0 => larger cells at increasing depth
+!------------------------------------------------------------------------
+! Horizontal cuts (Rectangular horizontal sheets)
+!------------------------------------------------------------------------
+n_hcut = 2       ! Number of horizontal cuts
+xc_hcut = 0.0  0.0  ! x-position of center of each sheet.
+yc_hcut = 0.0  0.0  ! y-position of center of each sheet.
+z_hcut = -5.0 -10.0  ! Z-position of each sheet
+xlen_hcut = 29.2  29.2 ! Horizontal length of each sheet in x-dir
+ylen_hcut = 29.2  29.2 ! Horizontal length of each sheet in y-dir
+npanx_hcut = 10 10 ! Number of cells in x-direction for each sheet
+npany_hcut = 10 10 ! Number of cells in y-direction for each sheet
+!------------------------------------------------------------------------
+! Body box (display a box representing a structure)
+!------------------------------------------------------------------------
+n_box = 2   ! Number of boxes
+xc_box = 15.0  -10.0  ! x-position of center of each box.
+yc_box = 0.0  0.0  ! y-position of center of each box.
+zc_box =  10.0 -10.0  ! z-position of center of each box.
+xlen_box = 15.0  1.0  ! Length of each box in x-dir
+ylen_box = 5.0  1.0  ! Length of each box in y-dir
+zlen_box = 5.0  50.0  ! Length of each box in z-dir
+!------------------------------------------------------------------------
+! End of file. (Don't remove the namelist tag below)
+!------------------------------------------------------------------------
+/

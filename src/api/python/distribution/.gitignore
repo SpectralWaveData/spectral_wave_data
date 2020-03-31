@@ -1,0 +1,7 @@
+build
+dist
+.eggs
+spectral_wave_data
+spectral_wave_data.egg-info
+swd_meta*
+MANIFEST.in

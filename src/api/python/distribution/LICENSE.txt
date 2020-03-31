@@ -1,0 +1,5 @@
+This Python package, spectral_wave_data, is part of the Github repository:
+https://github.com/SpectralWaveData/spectral_wave_data
+
+The repository is covered by the MIT-license:
+https://github.com/SpectralWaveData/spectral_wave_data/license.txt
