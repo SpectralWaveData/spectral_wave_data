@@ -39,7 +39,7 @@ Detailed kinematics of simulated rogue waves can be evaluated.
 
 ## Documentation
 
-Detailed [documentation](https://readthedocs.org/spectral_wave_data) 
+Detailed [documentation](https://spectral-wave-data.readthedocs.io/)
 describing theory, examples, implementation and related 
 tools is hosted on [ReadTheDocs](https://readthedocs.org/).
 
@@ -107,7 +107,7 @@ Meta data from an actual SWD file can be extracted using the console script swd_
     cid:     {'model': 'Fenton', 'T': 12.792885811907514, 'height': 18.5, ...}
 
 Output and further examples are explained in the 
-[online documentation](https://readthedocs.org/spectral_wave_data).
+[online documentation](https://spectral-wave-data.readthedocs.io/).
 
 
 ## Installation
@@ -130,7 +130,8 @@ For other systems you need to build the package from source.
 To compile this Python package from source you need access to a 
 recent Fortran compiler. E.g gfortran-10 or Intel Fortran 2019 or later.
 
-Due to the complexity of building from source we refer to the documentation and
+Due to the complexity of building from source we refer to the 
+[documentation](https://spectral-wave-data.readthedocs.io/) and
 the [spectral_wave_data](https://github.com/SpectralWaveData/spectral_wave_data)
 GitHub repository for related instructions and download of the source code.
 
