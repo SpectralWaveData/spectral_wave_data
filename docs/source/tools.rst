@@ -93,15 +93,17 @@ This method applies the :mod:`shp=2` shape class.
 WAMOD
 =====
 
-.. figure:: figures/wamod.png
+.. figure:: figures/Wamod.png
    :align: left
 
-DNVGL releases the program WAMOD for simulation of irregular seas based
-on HOS(M), the Higher-Order-Spectral-Method. The typical input is a wave spectrum
-and the output is a SWD file providing wave fields for a user specified order in
-finite or infinite water depth. Long and short crested seas can be simulated.
+DNVGL is
+`releasing the program WAMOD <https://projects.dnvgl.com/sesam/status/Wamod/Wamod.html?id=WAMOD_12-DEC-2019_2&typ=new%20feature&showVersion=yes>`_
+for simulation of irregular seas based on HOS(M), the Higher-Order-Spectral-Method.
+The typical input is a wave spectrum and the output is a SWD file providing linear or nonlinear
+wave fields. Long and short crested seas can be simulated in finite or infinite water depth.
 
-The new release of WASIM process SWD wave fields.
+The new release of WASIM can apply the SWD API for incident wave kinematics and Froude-Krylov forces.
+There are no restrictions regarding which wave generator produced the SWD file.
 WASIM is a Rankine panel program for simulating wave induced responses of marine structures.
 
 WAMOD and WASIM have commercial licenses and support.
