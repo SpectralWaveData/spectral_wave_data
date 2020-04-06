@@ -72,6 +72,10 @@ distribution demonstrates how to create SWD files directly from Python.
 
 Raschii also has a graphical `online demo <https://raschii.readthedocs.io/en/latest/raschii_dart.html>`_.
 
+.. note::
+  This feature in raschii will soon be released on PyPI.
+  However, it is included in the "write_swd" branch of that repository.
+
 ============
 Stokes Waves
 ============
@@ -88,6 +92,10 @@ waves in the SWD format.
     wave.write_swd('my_stokes.swd', dt=0.05, nperiods=50)
 
 This method applies the :mod:`shp=2` shape class.
+
+.. note::
+  This feature in raschii will soon be released on PyPI.
+  However, it is included in the "write_swd" branch of that repository.
 
 =====
 WAMOD

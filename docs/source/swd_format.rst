@@ -5,11 +5,15 @@ SWD format
 In this section we describe the format of the SWD-file.
 Symbols follow closely the definitions in the :doc:`theory<theory>` section.
 
-The units of all quantities are required to be consistent with the
-`SI-system <https://en.wikipedia.org/wiki/International_System_of_Units>`_.
+.. note::
 
+  This section is not relevant for programmers making
+  :doc:`application programs <programming_application_programs>`. The API
+  automatically takes care of all file handling. However, when
+  making :doc:`wave generators <programming_wave_generators>`, the details
+  described below needs to be understood for your relevant shape class
+  as defined in the :doc:`theory<theory>` section.
 
-The SWD-file is a C-stream binary file (see the :ref:`rationals<swd-c-stream-why>`).
 
 .. note::
 
@@ -21,6 +25,11 @@ The SWD-file is a C-stream binary file (see the :ref:`rationals<swd-c-stream-why
   specify a flag to signal that the SWD file should be written in little endian. This
   is usually specifed in the file open statement, but can also be defined using environment
   variables.
+
+The units of all quantities are required to be consistent with the
+`SI-system <https://en.wikipedia.org/wiki/International_System_of_Units>`_.
+
+The SWD-file is a C-stream binary file (see the :ref:`rationals<swd-c-stream-why>`).
 
 The binary stream in the SWD file is outlined in the following pseudo code:
 
