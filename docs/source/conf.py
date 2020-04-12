@@ -54,6 +54,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinxcontrib.bibtex',
 #    'sphinx.ext.autosectionlabel'
 #    'sphinxfortran.fortran_domain',
 #    'sphinxfortran.fortran_autodoc'

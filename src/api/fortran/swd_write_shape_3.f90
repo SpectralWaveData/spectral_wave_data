@@ -80,10 +80,12 @@ integer, parameter :: nstrip = 0
 character(kind=c_char, len=:), allocatable :: ccid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
-!
+
+call input_sanity_checks
+
 open( newunit=self % lu, file=file, access='stream', form='unformatted', &
       status='replace', action='write', convert='little_endian')
-! The CONVERT option is an Intel, GFortran, HP and IBM extension. 
+! The CONVERT option is an Intel, gfortran, HP and IBM extension. 
 ! Modify this parameter for other compilers if your compiler complains.
 
 !
@@ -94,9 +96,8 @@ self % n = n
 self % nh = nh
 self % nsf = nsf
 !
-nid = len_trim(cid) + 1  ! one extra for C null character
-allocate(character(len=nid) :: ccid)
 ccid = trim(cid) // c_null_char
+nid = len(ccid)
 cdate = timestamp() // c_null_char
 cprog = trim(prog) // c_null_char 
 !
@@ -107,7 +108,7 @@ write(self % lu) int(amp, c_int)
 write(self % lu) cprog
 write(self % lu) cdate
 write(self % lu) int(nid, c_int)
-write(self % lu) ccid(:nid)
+write(self % lu) ccid
 write(self % lu) real(grav, c_float)
 write(self % lu) real(lscale, c_float)
 write(self % lu) int(nstrip, c_int)
@@ -171,7 +172,7 @@ contains
             print*, 'xsf(nsf) = ', xsf(nsf)
             stop
         end if
-        ! Sea x-values should be monotonic increasing
+        ! Sea floor x-values should be monotonic increasing
         do i = 2, nsf
             if (xsf(i-1) >= xsf(i)) then
                 print*, 'ERROR from swd_write_shape_3 :: init'
@@ -203,12 +204,12 @@ end subroutine init
 subroutine update(self, h, ht, c, ct, ch, cht)
 ! Output of temporal functions as defined in the shape 3 class
 class(swd_write_shape_3), intent(inout) :: self   ! Object to update
-complex(wp),           intent(in) :: h(1:)   ! h(1:n) temporal amp
-complex(wp),           intent(in) :: ht(1:)  ! dh/dt(1:n) temporal amp
-complex(wp), optional, intent(in) :: c(1:)   ! c(1:nx) temporal amp
-complex(wp), optional, intent(in) :: ct(1:)  ! dc/dt(1:n) temporal amp
-complex(wp), optional, intent(in) :: ch(1:)  ! hat(c)(1:nh) temporal amp
-complex(wp), optional, intent(in) :: cht(1:) ! d hat(c)/dt(1:nh) temporal amp
+complex(wp),           intent(in) :: h(0:)   ! h(0:n) temporal amp
+complex(wp),           intent(in) :: ht(0:)  ! dh/dt(0:n) temporal amp
+complex(wp), optional, intent(in) :: c(0:)   ! c(0:n) temporal amp
+complex(wp), optional, intent(in) :: ct(0:)  ! dc/dt(0:n) temporal amp
+complex(wp), optional, intent(in) :: ch(0:)  ! hat(c)(0:nh) temporal amp
+complex(wp), optional, intent(in) :: cht(0:) ! d hat(c)/dt(0:nh) temporal amp
 !
 self % it = self % it + 1
 call dump(h, self % n)
@@ -228,7 +229,7 @@ contains
         complex(wp), intent(in) :: array(:)
         integer,     intent(in) :: n
         integer :: j
-        do j = 1, n
+        do j = 0, n
             write(self % lu) cmplx(array(j), kind=c_float)
         end do
     end subroutine dump

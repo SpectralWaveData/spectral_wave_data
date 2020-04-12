@@ -10,9 +10,39 @@ described by a small set of spectral formulations. Often only one or two formula
 Consequently, only a small subset of the :doc:`SWD-specification <swd_format>` needs
 to be considered when including support for writing SWD files.
 
--------
+------------
+Case Studies
+------------
+
+Before considering any programming, you first need to establish the relationship
+between the mathematical formulation you apply in your
+:ref:`wave generator<wave-generator>`, and the relevant SWD shape formulation.
+
+To assist you in this process we provide two case studies from real
+world wave generators.
+
+  * :doc:`Case 1 <programming_wg_case_1>` explains how the formulation applied in
+    `HOS-Ocean <https://github.com/LHEEA/HOS-ocean/wiki>`_, for long-crested finite depth
+    waves, relates to the SWD formulation :doc:`shape 2 <shape_2>`.
+
+  * :doc:`Case 2 <programming_wg_case_2>` relates a variable depth flow formulation
+    by Gouin et al. to the SWD formulation :doc:`shape 3 <shape_3>`.
+
+.. toctree::
+   :hidden:
+   :caption: Case Study WG
+
+   programming_wg_case_1
+   programming_wg_case_2
+
+
+-----------
+Programming
+-----------
+
+^^^^^^^
 Fortran
--------
+^^^^^^^
 
 Fortran programmers may apply the following section for how to
 write a sound SWD file from a :ref:`wave generator<wave-generator>`.
@@ -83,9 +113,9 @@ Following this approach, Fortran source code dealing with the low level binary C
 for the various spectral formulations are listed in this table
 
 
-----------------
+^^^^^^^^^^^^^^^^
 C / C++ / Python
-----------------
+^^^^^^^^^^^^^^^^
 
 Writing C-streams using these programming languages are straight forward.
 The logical ordering is the same as for the fortran examples given above.
