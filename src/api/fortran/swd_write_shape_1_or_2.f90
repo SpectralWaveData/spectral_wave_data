@@ -39,7 +39,7 @@ type swd_write_shape_1_or_2
 contains
     procedure :: init    ! Open the swd file and write the header section
     procedure :: update  ! Add spectral data at current time step
-    procedure :: update_fft  ! Add spectral data at current time step (input in fft format)
+    procedure :: update_fft  ! Alternative output method based on FFTW r2c data
     procedure :: close   ! close the file
 end type swd_write_shape_1_or_2
   
@@ -176,6 +176,7 @@ end subroutine update
 !==============================================================================
 
 subroutine update_fft(self, h_fft, ht_fft, c_fft, ct_fft)
+! Alternative to using the 'update' routine.
 ! Output of temporal functions as defined in the shape 1 and 2 classes
 ! Input arrays are in the form returned by FFTW r2c 1D transforms
 class(swd_write_shape_1_or_2), intent(inout) :: self   ! Object to update

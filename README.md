@@ -106,11 +106,8 @@ directory of __spectral_wave_data__.
 
 ## Would you like to contribute?
 
-Contributions, suggestions and discussions are welcome from
-organizations and individuals.
-
-Plese report issues, suggestions and pull requests
-[like this](./CONTRIBUTION.md).
+[Contributions, suggestions and discussions](./CONTRIBUTION.md) are 
+welcome from organizations and individuals.
 
 For general guide lines on collaboration, read our
 [code of conduct](./CODE_OF_CONDUCT.md).
