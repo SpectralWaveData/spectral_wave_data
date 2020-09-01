@@ -1,23 +1,36 @@
-# spectral_wave_data
+# Spectral Wave Data (SWD)
+
+An API and file format (`*.swd`) for representation and interchange of ocean
+wave kinematics.
+
+A multitude of wave types from many different wave models can be represented,
+transferred and queried by one standard API and file format.
+
+* Regular and irregular
+* Linear and non-linear
+* Shallow and deep water
 
 This is the main repository of the Github organization 
-[SpectralWaveData](https://github.com/SpectralWaveData).
+[SpectralWaveData](https://github.com/SpectralWaveData) and contains
+the core library and examples of use in C, C++, Python and Fortran.
 
-![alt text](docs/source/figures/swd_scheme.png)
-
+![Flow chart showing how SWD can be used](docs/source/figures/swd_scheme.png)
 
 ## Purpose and goals
 
-The main idea is to provide an open API for boosting research and 
-industrial application of ocean wave kinematic.
-This API can be utilized by academic and commercial software developers 
-to assess effects of ocean gravity waves. Not exclusively limited to spectral kinematics, 
-but also, as advanced boundary conditions for more sophisticated wave 
-models and to study related effects on marine structures.
+The main goal of the SWD initiative is to provide an open API for boosting
+research and industrial application of ocean wave kinematic.
+Our goal is that by providing a simple, but powerful, interface we can tear
+down walls between the fields of oceanography, marine hydrodynamics and
+structural engineering. A motivating example: A specialist tool from the field
+of oceanography can generate waves that can in turn be simulated in a fully
+viscous Navier-Stokes calculation (CFD) to assess, e.g., the motion of a
+floating wind turbine, without either of the tools knowing about each other.
+Our hope is that SWD can become a universal language for representing waves.
 
-By using this simple but powerful interface another goal with this API 
-is to tear down walls between the fields of oceanography, marine 
-hydrodynamics (flow around marine structures) and structural engineering.
+The SWD API can be utilized by academic and commercial software developers 
+to assess effects of ocean gravity waves due to the permissive MIT license
+and the thorough documentation provided.
 
 ## What kind of waves?
 
@@ -30,13 +43,13 @@ long and short crested waves propagating in infinite or constant water
 depth. For long crested seas support for varying depth is also included.
 
 The current version has been used for describing, Airy, Stokes, 
-Stream waves and Higher-Order-Spectral-Method waves of arbitrary order.
+Stream-function waves and Higher-Order-Spectral-Method waves of arbitrary order.
 Detailed kinematics of simulated rogue waves can be evaluated.
 
 ## Can I apply this API in my programs with only a small effort?
 
-Sure, this is one of our main design goals. Users apply this API with 
-minor effort. Ready to use implementations of the API are provided in 
+This is one of our main design goals! We hope you can use the SWD API with 
+minor effort. Ready-to-use implementations of the API are provided in 
 several relevant programming languages. As source code and as precompiled
 libraries for Windows and Linux.
 
@@ -63,7 +76,7 @@ You may even implement it in another programing language.
 
 ## Does this really work?
 
-Prior to going open software, [DNVGL](https://www.dnvgl.com/) developed
+Prior to going open source, [DNV GL](https://www.dnvgl.com/) developed
 this concept and has applied it since 2015 in programs and projects, 
 also extensively in commercial projects. 
 A program based on the higher-order-spectral-method (HOSM) was developed 
@@ -76,8 +89,8 @@ several application programs:
  - WeeBEM is a fully nonlinear 2D-wave tank based on BEM for simulation 
    of steep waves and wave-body interaction (e.g. slamming)
 
-Based on positive experience from these projects and some interesting
-lessons learned this open source library has been created.
+Based on positive experience from these projects, and some interesting
+lessons learned, the open source SWD library has been created.
 
 ## Related programs and tools
 
@@ -102,7 +115,7 @@ Detailed [documentation](https://spectral-wave-data.readthedocs.io/)
 describing theory and implementation is hosted 
 on the [ReadTheDocs](https://readthedocs.org/) web site. The associated 
 [Sphinx](http://www.sphinx-doc.org/) documents are located in the docs
-directory of __spectral_wave_data__.
+directory of `spectral_wave_data`.
 
 ## Would you like to contribute?
 
@@ -135,17 +148,6 @@ expected to be identical with 1.0.0. Unless users report issues
 on specific hardware/OS combinations, an identical version 
 will be released using the version tag 1.0.0 on 2020.04.30.
 
-## SpectralWaveData, spectral_wave_data, spectral-wave-data, ...
-
-All programming languages have their own guideline for naming conventions.
-Some conventions are not legal syntax in other languages.
-Some languages are case sensitive some are not. They have different
-concepts and names for modules, packages, classes etc. The documentation
-provides specific definitions.
-
-On GitHub we let SpectralWaveData denote the name of the organization containing [Git](https://en.wikipedia.org/wiki/Git) repositories. 
-This particular repository is named spectral_wave_data.
-
 ## Authors and maintainers
 
 - Jens B. Helmers - Initial work - @jeblohe
@@ -156,27 +158,23 @@ This particular repository is named spectral_wave_data.
 The copyright owners have licensed this project under the MIT License. 
 See the [LICENSE.txt](./LICENSE.txt) file for details.
 
-The initial copyright owner is [DNVGL](https://www.dnvgl.com/).
-However, other contributors do by law automatically grant copyrights 
+The initial copyright owner is [DNV GL](https://www.dnvgl.com/).
+However, other contributors do by law automatically get the copyright
 to their contributions. The Git version control serves as the documentation.
 
 For a good understanding on the implications of copyrights and license
-it is highly recommended to read a book like:: 
+it is highly recommended to read the (free) book
 
-  "Understanding Open Source and Free Software Licensing"
-  By Andrew M. St. Laurent
-  ©2011, O'Reilly Media, Inc., August 2004
+> [Understanding Open Source and Free Software Licensing](https://www.oreilly.com/openbook/osfreesoft/book/#fullcontent),
+> 2011, Andrew M. St. Laurent,
+> [O'Reilly Media, Inc.](https://www.oreilly.com/), August 2004
 
-[Free online access](https://www.oreilly.com/openbook/osfreesoft/book/#fullcontent)
-to this book is available from [O'Reilly Media](https://www.oreilly.com/).
-
-Having more copyright owners makes it more difficult to change the license
-in the future. 
+Having more copyright owners makes it more difficult to change the license in the future.
 This is a mechanism to avoid that individual copyright owners claim
-exclusive rights on future versions of this open software.
+exclusive rights on future versions of this open source software.
 
 ## Acknowledgments
 
 Thank you to everybody who has contributed to the development 
-and usage of the __spectral_wave_data__. 
-Check out the documentation for details.
+and usage of the Spectral Wave Data project. 
+Check out the [documentation](https://spectral-wave-data.readthedocs.io/) for details.
