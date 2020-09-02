@@ -19,3 +19,12 @@ set(SRC_CORE
   ${DIR_SRC_API_F}/swd_write_shape_4_or_5.f90
   ${DIR_SRC_API_F}/swd_write_shape_6.f90
   ${DIR_SRC_API_F}/swd_version.f90)
+
+# Enable C++ style pre-processor directives for files that use them
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    set_source_files_properties(
+      ${DIR_SRC_API_F}/open_swd_file.f90
+      PROPERTIES
+      COMPILE_FLAGS
+      -cpp)
+endif()
