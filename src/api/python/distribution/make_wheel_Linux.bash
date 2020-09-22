@@ -15,3 +15,7 @@ cp README.txt spectral_wave_data/.
 
 python setup.py bdist_wheel
 cp -r dist/* ../whl/.
+
+echo ""
+echo "You may want to run python -m auditwheel repair whl/*"
+echo "to create a manylinux wheel"
