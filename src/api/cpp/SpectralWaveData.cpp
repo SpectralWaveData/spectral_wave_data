@@ -8,8 +8,7 @@ This implementation is based on establishing wrappers to the C-implementation.
 
 Ver-3.0:
 Coded by: Jens B. Helmers DNVGL,  2019.08.11
-
-/**/
+*/
 
 SpectralWaveData::SpectralWaveData(
     std::string file_swd,     // Name of actual SWD file

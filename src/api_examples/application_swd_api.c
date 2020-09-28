@@ -39,7 +39,7 @@ bool dc_bias = false;   // Suppress contributions from zero-frequency
 swd = swd_api_allocate(file_swd, x0, y0, t0, beta, rho, nsumx, nsumy, 
                        impl, ipol, norder, dc_bias);
 if (swd_api_error_raised(swd)) {
-    fprintf(stderr, swd_api_error_get_msg(swd));
+    fprintf(stderr, "%s", swd_api_error_get_msg(swd));
     exit(EXIT_FAILURE); /* indicate failure.*/
 }
 
@@ -49,7 +49,7 @@ while (t < tmax) {
     // Tell the swd object current application time...
     swd_api_update_time(swd, t);
     if (swd_api_error_raised(swd)) {   // t is too big...
-        fprintf(stderr, swd_api_error_get_msg(swd));
+        fprintf(stderr, "%s", swd_api_error_get_msg(swd));
         exit(EXIT_FAILURE); 
     }
 
@@ -104,7 +104,7 @@ while (t < tmax) {
     // elevation and pressure converge as a function of number of spectral components
     swd_api_convergence(swd, x, y, z, "dump.csv");
     if (swd_api_error_raised(swd)) { /* in rare cases you could not open the CSV file...*/
-        fprintf(stderr, swd_api_error_get_msg(swd));
+        fprintf(stderr, "%s", swd_api_error_get_msg(swd));
         exit(EXIT_FAILURE);
     }
 
@@ -118,7 +118,7 @@ while (t < tmax) {
 // In this case we only care about the time interval [100.0, 200.0]
 swd_api_strip(swd, 100.0, 200.0, "stripped.swd");
 if (swd_api_error_raised(swd)) { /* if t=[100.0, 200.0] is not a proper interval...*/
-    fprintf(stderr, swd_api_error_get_msg(swd));
+    fprintf(stderr, "%s", swd_api_error_get_msg(swd));
     exit(EXIT_FAILURE);
 }
 
