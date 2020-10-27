@@ -3,8 +3,4 @@ rm -rf dist
 rm -rf spectral_wave_data
 rm -rf spectral_wave_data.egg-info
 rm -rf MANIFEST.in
-rm -rf ../Cmake/Build_Py27_Linux
-rm -rf ../Cmake/Build_Py35_Linux
-rm -rf ../Cmake/Build_Py36_Linux
-rm -rf ../Cmake/Build_Py37_Linux
-rm -rf ../Cmake/Build_Py38_Linux
+rm -rf ../Cmake/Build_Linux*
