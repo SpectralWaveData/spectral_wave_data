@@ -1,4 +1,3 @@
-orphan
 {{ objname | escape | underline}}
 
 {{ module }}

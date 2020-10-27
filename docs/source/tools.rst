@@ -46,6 +46,26 @@ In this example we apply two wave components.
 The :doc:`documentation <tools_airy_write_swd>` of this function describes relevant
 optional parameters and further examples.
 
+The spectral components stored in an SWD file (shp=6) can be extracted into a dictionary 
+using the syntax.
+
+.. code-block:: python
+
+    from spectral_wave_data.tools import airy
+
+    >>> res = airy.get_components('my_airy.swd')
+    >>> res
+    {"n" : 2, 
+     "depth" : 32.0,
+     "grav" : 9.81,
+     "amps" : [2.0, 3.0], 
+     "dirs_deg" : [180.0, 70.0], 
+     "phases_deg" : [50.0, 0.0], 
+     "Twaves" : [10.5, 13.0],
+     "kwaves" : [0.041875288176738856, 0.031260688477796145],
+     "omegas" : [0.5983986006837702, 0.483321946706122],
+     "Lwaves" : [150.04518370502365, 200.99318387189103]]}
+
 .. toctree::
    :hidden:
 
@@ -72,10 +92,6 @@ distribution demonstrates how to create SWD files directly from Python.
 
 Raschii also has a graphical `online demo <https://raschii.readthedocs.io/en/latest/raschii_dart.html>`_.
 
-.. note::
-  This feature in raschii will soon be released on PyPI.
-  However, it is included in the "write_swd" branch of that repository.
-
 ============
 Stokes Waves
 ============
@@ -93,10 +109,6 @@ waves in the SWD format.
 
 This method applies the :mod:`shp=2` shape class.
 
-.. note::
-  This feature in raschii will soon be released on PyPI.
-  However, it is included in the "write_swd" branch of that repository.
-
 =====
 WAMOD
 =====
@@ -104,13 +116,13 @@ WAMOD
 .. figure:: figures/Wamod.png
    :align: left
 
-DNVGL is
-`releasing the program WAMOD <https://projects.dnvgl.com/sesam/status/Wamod/Wamod.html?id=WAMOD_12-DEC-2019_2&typ=new%20feature&showVersion=yes>`_
+DNVGL has
+`released the program WAMOD <https://projects.dnvgl.com/sesam/status/Wamod/Wamod.html?id=WAMOD_12-DEC-2019_2&typ=new%20feature&showVersion=yes>`_
 for simulation of irregular seas based on HOS(M), the Higher-Order-Spectral-Method.
 The typical input is a wave spectrum and the output is a SWD file providing linear or nonlinear
 wave fields. Long and short crested seas can be simulated in finite or infinite water depth.
 
-The new release of WASIM can apply the SWD API for incident wave kinematics and Froude-Krylov forces.
+Recent releases of WASIM can apply the SWD API for incident wave kinematics and Froude-Krylov forces.
 There are no restrictions regarding which wave generator produced the SWD file.
 WASIM is a Rankine panel program for simulating wave induced responses of marine structures.
 

@@ -111,10 +111,10 @@ listing the relevant metadata for a given SWD-file. It runs on Windows and Linux
 In a terminal window with access to your installed **spectral_wave_data** package you can
 invoke it like in this example where :file:`my.swd` is the name of the actual SWD-file:
 
->>> swd_meta my.swd
-version: 1.0.0-beta.9
-prog:    raschii-1.0.3.dev0
-date:    2020:01:22 19:57:55
+> swd_meta my.swd
+version: 1.0.0
+prog:    raschii-1.0.4
+date:    2020:10:22 19:57:55
 fmt:     100
 shp:     2
 amp:     1
@@ -123,7 +123,7 @@ dt:      0.10000000149011612
 nsteps:  64
 nstrip:  0
 order:   -1
-depth:   32.0
+d:       32.0
 n:       50
 sizex:   220.00000561733003
 lmax:    220.00000561733003

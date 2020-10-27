@@ -143,10 +143,8 @@ future. Expanding functionalities and introducing additional
 spectral formulations and alternative implementations are accounted
 for by design in version 1.0.0. Hence, version 2.0.0 should never come. :-J
 
-The current version, denoted 1.0.0-rc1, is the release candidate
-expected to be identical with 1.0.0. Unless users report issues
-on specific hardware/OS combinations, an identical version 
-will be released using the version tag 1.0.0 on 2020.04.30.
+The current version, denoted 1.0.0-rc2, is the release candidate
+expected to be identical with 1.0.0. 
 
 ## Authors and maintainers
 
