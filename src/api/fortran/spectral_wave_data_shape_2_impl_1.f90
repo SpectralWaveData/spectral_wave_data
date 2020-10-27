@@ -78,6 +78,8 @@ contains
     procedure :: get_logical        ! Extract a specified logical parameter
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
+    procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: swd_to_fft_coeffs
 end type spectral_wave_data_shape_2_impl_1
 
 interface spectral_wave_data_shape_2_impl_1
@@ -1526,6 +1528,32 @@ case default
 end select
 !
 end function get_chr
+
+!==============================================================================
+
+function elev_fft(self, nx, ny) result(elev)
+use fft_fftw3_def, only : irfft2
+class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
+integer, intent(in) :: nx, ny
+real(knd), allocatable :: elev(:, :)
+
+elev = irfft2(self % swd_to_fft_coeffs(self % h_cur), 2*self % n, 1, nx, ny)
+
+end function elev_fft
+
+!==============================================================================
+
+function swd_to_fft_coeffs(self, swd_coeffs) result(fft_coeffs)
+class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
+complex(wp), dimension(0:self % n), intent(in) :: swd_coeffs
+complex(wp), dimension(self % n + 1, 1) :: fft_coeffs
+integer :: ix, iy
+real(wp) :: sc
+
+fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
+fft_coeffs(1:self % n + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % n))
+
+end function swd_to_fft_coeffs
 
 !==============================================================================
 

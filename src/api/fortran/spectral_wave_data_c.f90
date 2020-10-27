@@ -64,6 +64,7 @@ public :: error_get_id  ! Return error id
 public :: error_get_msg ! Return error message
 public :: error_clear   ! Clear the error flag
 public :: close         ! Destructor
+public :: elev_fft      ! Surface elevation FFT
 !------------------------------------------------------------------------------
 !
 !                E N D    P U B L I C    Q U A N T I T I E S
@@ -697,6 +698,25 @@ do i = 1, n
 end do
 !
 end function str_c2f
+
+!==============================================================================
+
+function elev_fft(this, nx, ny) bind(c, name='swd_api_elev_fft')
+type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
+integer(c_int), value           :: nx,ny       ! Dimensions of output-grid
+type(c_ptr)                     :: elev_fft
+real(c_wp), target, allocatable :: elev(:, :)  ! Wave elevation at (x,y)
+type(spectral_wave_data_c), pointer :: swd
+integer :: nx_f, ny_f
+        
+nx_f = nx
+ny_f = ny
+call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
+
+elev = swd % obj % elev_fft(nx_f, ny_f)
+elev_fft = c_loc(elev(1, 1))
+!
+end function elev_fft
 
 !==============================================================================
 

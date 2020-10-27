@@ -172,6 +172,10 @@ void swd_api_convergence(void *swd, real_swd x, real_swd y, real_swd z, const ch
 // Eventual error signals (ref constructor): 1001, 1003
 void swd_api_strip(void *swd, real_swd tmin, real_swd tmax, const char *file_swd_new);
 
+// wave elevation FFT
+// Eventual error signals (ref constructor): None
+real_swd *swd_api_elev_fft(void *swd, int nx, int ny);
+
 // ===================================================================
 //  Provide parameters from the swd-file:
 
