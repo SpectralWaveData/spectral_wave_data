@@ -35,3 +35,10 @@ Notes for Linux users:
 ======================
 
 You may need libraries included by gfortran-9/gcc-9 or later.
+
+If you want to create a manylinux wheel, the "easiest" is to get an old
+version of linux, install Intel Fortran and compile the libSpectralWaveData.so
+file with ifort and the "-static-intel" flag to make it depend only on the
+(old) system files. You can then run the "auditwheel" utility to check whl
+file compatibility and make the wheel file "universal" (manylinux-compatible).
+Getting gfortran version 9+ to run on the old manylinux images is very hard.

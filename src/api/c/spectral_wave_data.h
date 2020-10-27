@@ -91,7 +91,7 @@ void *swd_api_allocate(const char *file_swd, real_swd x0, real_swd y0,
     1004: invalid input parameters
     1005: Not able to allocate memory
 
-   /**/
+   */
 
 // destructor
 void swd_api_close(void *swd);
