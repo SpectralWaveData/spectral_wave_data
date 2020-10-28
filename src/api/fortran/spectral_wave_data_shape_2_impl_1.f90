@@ -1534,10 +1534,45 @@ end function get_chr
 function elev_fft(self, nx, ny) result(elev)
 use fft_fftw3_def, only : irfft2
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
-integer, intent(in) :: nx, ny
+integer, optional, intent(in) :: nx, ny
 real(knd), allocatable :: elev(:, :)
+integer :: nx0, ny0
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::elev_fft'
+character(len=250) :: err_msg(5)
 
-elev = irfft2(self % swd_to_fft_coeffs(self % h_cur), 2*self % n, 1, nx, ny)
+if (present(nx)) then
+    if (nx < 0) then
+        nx0 = -nx*2*self % nsumx
+    elseif (nx >= 2*self % nsumx) then
+        nx0 = nx
+    else
+        write(err_msg(1),'(a)') "Invalid grid size nx."
+        write(err_msg(2),'(a)') "nx must either be a negative integer, or a positive"
+        write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 
+        write(err_msg(4),'(a)') "smallest grid resolving all coefficients in the swd-file."
+        write(err_msg(5),'(a, I0)') 'Smalles possible nx = ', 2*self % nsumx
+        call self % error % set_id_msg(err_proc, 1004, err_msg)
+        allocate(elev(1,1))
+        elev = huge(elev)
+        return
+    end if
+else
+    nx0 = 2*self % nsumx
+end if
+
+if (present(ny)) then
+    if (abs(ny) /= 1) then
+        write(err_msg(1),'(a)') "Invalid grid size ny."
+        write(err_msg(2),'(a)') "ny must be 1 for unidirectional waves."
+        call self % error % set_id_msg(err_proc, 1004, err_msg(1:2))
+        allocate(elev(1,1))
+        elev = huge(elev)
+        return
+    end if
+end if
+ny0 = 1
+
+elev = irfft2(self % swd_to_fft_coeffs(self % h_cur(0:self % nsumx)), 2*self % nsumx, 1, nx0, ny0)
 
 end function elev_fft
 
@@ -1545,13 +1580,13 @@ end function elev_fft
 
 function swd_to_fft_coeffs(self, swd_coeffs) result(fft_coeffs)
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
-complex(wp), dimension(0:self % n), intent(in) :: swd_coeffs
-complex(wp), dimension(self % n + 1, 1) :: fft_coeffs
+complex(wp), dimension(0:self % nsumx), intent(in) :: swd_coeffs
+complex(wp), dimension(self % nsumx + 1, 1) :: fft_coeffs
 integer :: ix, iy
 real(wp) :: sc
 
 fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
-fft_coeffs(1:self % n + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % n))
+fft_coeffs(1:self % nsumx + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % nsumx))
 
 end function swd_to_fft_coeffs
 

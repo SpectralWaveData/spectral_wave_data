@@ -262,7 +262,7 @@ abstract interface
     function elev_fft(self, nx, ny) result(elev)
         import
         class(spectral_wave_data), intent(inout) :: self ! Actual class
-        integer, intent(in) :: nx, ny
+        integer, optional, intent(in) :: nx, ny
         real(knd), allocatable :: elev(:, :)
     end function elev_fft
 

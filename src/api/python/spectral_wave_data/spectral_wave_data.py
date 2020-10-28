@@ -70,7 +70,7 @@ class SpectralWaveData(object):
 
     """
 
-    def __init__(self, file_swd, x0, y0, t0, beta, rho=1025.0, nsumx=-1, 
+    def __init__(self, file_swd, x0=0.0, y0=0.0, t0=0.0, beta=0.0, rho=1025.0, nsumx=-1, 
                  nsumy=-1, impl=0, ipol=0, norder=0, dc_bias=False):
         """Constructor
 
@@ -78,12 +78,12 @@ class SpectralWaveData(object):
         ----------
         file_swd : str
             The name of the swd file defining the ocean waves.
-        x0, y0 : float
+        x0, y0 : float, optional
             The origin of the application wave coordinate system relative to the
             SWD coordinate system. [m]
-        t0 : float
+        t0 : float, optional
             The SWD time corresponding to t=0 in the application simulation. [s]
-        beta : float
+        beta : float, optional
             Rotation of the SWD x-axis relative to the application x-axis. [deg]
         rho : float, optional
             Density of water. [kg/m^3] (Only relevant for pressure calculations)
@@ -783,3 +783,49 @@ class SpectralWaveData(object):
         if self._alive is True:
             swdlib.swd_api_close(self.obj)
             self._alive = False
+
+    def elev_fft(self, nx=-1, ny=-1):
+        """Calculates the wave elevation at a regular FFT-grid with
+        dimensions (nx, ny). It is assumed that the current time has 
+        been set using the method :meth:`update_time`.
+
+        Parameters
+        ----------
+        nx, ny : float, optional
+            Output dimensions.
+
+        Returns
+        -------
+        ndarray
+            Wave elevation on a regular grid.
+
+        Raises
+        ------
+        None
+
+        Examples
+        --------
+        
+
+        """
+        import numpy as np
+        from ctypes import c_double, cast, POINTER
+
+        if nx < 0:
+            nx_out = -2*nx*self.get('nsumx')
+        else:
+            nx_out = nx
+
+        if ny < 0:
+            if self.get('nsumy') < 0:
+                ny_out = 1
+            else:
+                ny_out = -2*ny*self.get('nsumy')
+        else:
+            ny_out = ny
+
+        data_pointer = swdlib.swd_api_elev_fft(self.obj, nx, ny)
+        res = np.squeeze(np.ctypeslib.as_array(cast(data_pointer, POINTER(c_double)), shape=(ny_out, nx_out)).T).copy()
+        swdlib.swd_api_close_fft()
+
+        return res

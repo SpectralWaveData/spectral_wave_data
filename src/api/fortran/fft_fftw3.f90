@@ -37,11 +37,13 @@ function irfft2(fh, nx, ny, nxE, nyE) result(fE)
     else if (nx <= nxE .and. ny <= nyE) then
         fhE = zeropad(fh, nx, ny, nxE, nyE)
     else
-        error stop "Can only resample on a finer grid."
+        error stop "Can only resample on a finer grid." ! This can never happen due to checking in elev_fft
     end if
 
     call dfftw_plan_dft_c2r_2d(plan_IFFT, nxE, nyE, fhE, fE, flag)
     call dfftw_execute_dft_c2r(plan_IFFT, fhE, fE)
+    call dfftw_destroy_plan(plan_IFFT)
+    call fftw_cleanup()
 
 end function irfft2
 
@@ -87,7 +89,7 @@ function zeropad(fh, nx, ny, nxE, nyE) result(fhE)
             fhE(:, nyE - nyh + 2) = fhE(:, nyh)
         end if
     else
-        error stop "Invalid input."
+        error stop "Invalid input."  ! This can never happen due to checking in elev_fft
     end if
 
 end function zeropad

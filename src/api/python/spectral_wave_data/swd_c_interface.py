@@ -143,6 +143,12 @@ swdlib.swd_api_error_clear.restype = c_void_p
 swdlib.swd_api_close.argtypes = [c_void_p]
 swdlib.swd_api_close.restype = c_void_p
 
+swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_elev_fft.restype = c_void_p
+
+swdlib.swd_api_close_fft.argtypes = []
+swdlib.swd_api_close_fft.restype = c_void_p
+
 """
 ================================================================================================
 END interface to C implementation

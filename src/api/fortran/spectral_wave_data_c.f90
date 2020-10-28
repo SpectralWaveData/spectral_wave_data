@@ -65,6 +65,7 @@ public :: error_get_msg ! Return error message
 public :: error_clear   ! Clear the error flag
 public :: close         ! Destructor
 public :: elev_fft      ! Surface elevation FFT
+public :: close_fft     ! Deallocate FFT-array to avouid memory leak
 !------------------------------------------------------------------------------
 !
 !                E N D    P U B L I C    Q U A N T I T I E S
@@ -86,6 +87,8 @@ end type vector_phi_2nd
 type, bind(c) :: vector_elev_2nd
     real(c_wp) :: xx, xy, yy
 end type vector_elev_2nd
+
+real(c_wp), allocatable, target :: elev_arr(:, :)  ! Wave elevation at (x,y)
 
 contains
 
@@ -703,9 +706,8 @@ end function str_c2f
 
 function elev_fft(this, nx, ny) bind(c, name='swd_api_elev_fft')
 type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
-integer(c_int), value           :: nx,ny       ! Dimensions of output-grid
+integer(c_int), value           :: nx, ny       ! Dimensions of output-grid
 type(c_ptr)                     :: elev_fft
-real(c_wp), target, allocatable :: elev(:, :)  ! Wave elevation at (x,y)
 type(spectral_wave_data_c), pointer :: swd
 integer :: nx_f, ny_f
         
@@ -713,10 +715,21 @@ nx_f = nx
 ny_f = ny
 call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
 
-elev = swd % obj % elev_fft(nx_f, ny_f)
-elev_fft = c_loc(elev(1, 1))
+if (.not. allocated(elev_arr)) allocate(elev_arr(nx, ny))
+
+elev_arr = swd % obj % elev_fft(nx_f, ny_f)
+elev_fft = c_loc(elev_arr(1, 1))
+
 !
 end function elev_fft
+
+!==============================================================================
+
+subroutine close_fft() bind(c, name='swd_api_close_fft')
+
+if (allocated(elev_arr)) deallocate(elev_arr)
+
+end subroutine close_fft
 
 !==============================================================================
 
