@@ -70,7 +70,7 @@ class SpectralWaveData(object):
 
     """
 
-    def __init__(self, file_swd, x0, y0, t0, beta, rho=1025.0, nsumx=-1, 
+    def __init__(self, file_swd, x0=0.0, y0=0.0, t0=0.0, beta=0.0, rho=1025.0, nsumx=-1,
                  nsumy=-1, impl=0, ipol=0, norder=0, dc_bias=False):
         """Constructor
 
@@ -150,6 +150,23 @@ class SpectralWaveData(object):
             else:
                 raise SwdError(msg)
         self._alive = True
+
+    def __enter__(self):
+        """Allow with statement.
+
+        Examples
+        --------
+        >>> with SpectralWaveData("my.swd") as swd:
+        ...     swd.update_time(0.0)
+        ...     swd.elev(0.0, 0.0)
+        >>> print("swd object is closed!")
+
+        """
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        """Safe exit from with statement. Exceptions are raised if relevant"""
+        self.close()
 
     def update_time(self, time):
         """Set the current time for all kinematic calculations.
