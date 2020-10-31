@@ -65,7 +65,6 @@ public :: error_get_msg ! Return error message
 public :: error_clear   ! Clear the error flag
 public :: close         ! Destructor
 public :: elev_fft      ! Surface elevation FFT
-public :: close_fft     ! Deallocate FFT-array to avouid memory leak
 !------------------------------------------------------------------------------
 !
 !                E N D    P U B L I C    Q U A N T I T I E S
@@ -718,14 +717,6 @@ allocate(elev_arr(nx_fft, ny_fft))
 elev_arr = swd % obj % elev_fft(nx_fft_f, ny_fft_f)
 
 end subroutine elev_fft
-
-!==============================================================================
-
-subroutine close_fft() bind(c, name='swd_api_close_fft')
-
-! if (allocated(elev_arr)) deallocate(elev_arr)
-
-end subroutine close_fft
 
 !==============================================================================
 
