@@ -1750,12 +1750,12 @@ end function get_chr
 
 !==============================================================================
 
-function elev_fft(self, nx, ny) result(elev)
+function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
-integer, optional, intent(in) :: nx, ny
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
 
-allocate(elev(nx, ny))
+allocate(elev(nx_fft_in, ny_fft_in))
 elev = 0.0_knd
 
 end function elev_fft

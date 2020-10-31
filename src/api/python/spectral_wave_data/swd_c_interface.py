@@ -59,6 +59,7 @@ class vecphi2ndswd(Structure):
 class vecelev2ndswd(Structure):
     _fields_ = [("xx", c_double), ("xy", c_double), ("yy", c_double)]
 
+
 swdlib.swd_api_allocate.argtypes = [c_char_p, c_double, c_double,
                                     c_double, c_double, c_double,
                                     c_int, c_int, c_int, c_int,
@@ -143,11 +144,13 @@ swdlib.swd_api_error_clear.restype = c_void_p
 swdlib.swd_api_close.argtypes = [c_void_p]
 swdlib.swd_api_close.restype = c_void_p
 
-swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
-swdlib.swd_api_elev_fft.restype = c_void_p
+from ctypes import POINTER
+from .ISO_Fortran_binding import CFI_cdesc_t
+swdlib.swd_api_elev_fft_obj.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_elev_fft_obj.restype = POINTER(CFI_cdesc_t)
 
-swdlib.swd_api_close_fft.argtypes = []
-swdlib.swd_api_close_fft.restype = c_void_p
+swdlib.swd_api_elev_fft_obj_deallocate.argtypes = [POINTER(CFI_cdesc_t)]
+swdlib.swd_api_elev_fft_obj_deallocate.restype = c_void_p
 
 """
 ================================================================================================

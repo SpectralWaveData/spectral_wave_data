@@ -259,10 +259,10 @@ abstract interface
         class(spectral_wave_data) :: self  ! Object to destruct
     end subroutine close
 
-    function elev_fft(self, nx, ny) result(elev)
+    function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
         import
         class(spectral_wave_data), intent(inout) :: self ! Actual class
-        integer, optional, intent(in) :: nx, ny
+        integer, optional, intent(in) :: nx_fft_in, ny_fft_in
         real(knd), allocatable :: elev(:, :)
     end function elev_fft
 

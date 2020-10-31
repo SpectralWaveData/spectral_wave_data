@@ -784,14 +784,14 @@ class SpectralWaveData(object):
             swdlib.swd_api_close(self.obj)
             self._alive = False
 
-    def elev_fft(self, nx=-1, ny=-1):
+    def elev_fft(self, nx_fft=-1, ny_fft=-1):
         """Calculates the wave elevation at a regular FFT-grid with
-        dimensions (nx, ny). It is assumed that the current time has 
+        dimensions (nx_fft, ny_fft). It is assumed that the current time has 
         been set using the method :meth:`update_time`.
 
         Parameters
         ----------
-        nx, ny : float, optional
+        nx_fft, ny_fft : int, optional
             Output dimensions.
 
         Returns
@@ -809,23 +809,28 @@ class SpectralWaveData(object):
 
         """
         import numpy as np
-        from ctypes import c_double, cast, POINTER
+        from ctypes import POINTER, c_double, cast
+        from .ISO_Fortran_binding import CFI_cdesc_t
 
-        if nx < 0:
-            nx_out = -2*nx*self.get('nsumx')
-        else:
-            nx_out = nx
-
-        if ny < 0:
-            if self.get('nsumy') < 0:
-                ny_out = 1
+        # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
+        CFI_obj = swdlib.swd_api_elev_fft_obj(self.obj, nx_fft, ny_fft)    
+        
+        if swdlib.swd_api_error_raised(self.obj):
+            id = swdlib.swd_api_error_get_id(self.obj)
+            msg = swdlib.swd_api_error_get_msg(self.obj).decode()
+            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            if id == 1004:
+                raise SwdInputValueError(msg)
             else:
-                ny_out = -2*ny*self.get('nsumy')
-        else:
-            ny_out = ny
+                raise SwdError(msg)
 
-        data_pointer = swdlib.swd_api_elev_fft(self.obj, nx, ny)
-        res = np.squeeze(np.ctypeslib.as_array(cast(data_pointer, POINTER(c_double)), shape=(ny_out, nx_out)).T).copy()
-        swdlib.swd_api_close_fft()
+        # array dimensions
+        nx_out = CFI_obj.contents.dim[0].extent
+        ny_out = CFI_obj.contents.dim[1].extent
 
+        data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
+        res = np.squeeze(np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out)).T).copy()
+
+        swdlib.swd_api_elev_fft_obj_deallocate(CFI_obj)
+        
         return res

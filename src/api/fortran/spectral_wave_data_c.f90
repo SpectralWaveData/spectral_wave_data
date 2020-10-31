@@ -88,8 +88,6 @@ type, bind(c) :: vector_elev_2nd
     real(c_wp) :: xx, xy, yy
 end type vector_elev_2nd
 
-real(c_wp), allocatable, target :: elev_arr(:, :)  ! Wave elevation at (x,y)
-
 contains
 
 !==============================================================================
@@ -704,30 +702,28 @@ end function str_c2f
 
 !==============================================================================
 
-function elev_fft(this, nx, ny) bind(c, name='swd_api_elev_fft')
+subroutine elev_fft(this, nx_fft, ny_fft, elev_arr) bind(c, name='swd_api_elev_fft_')
 type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
-integer(c_int), value           :: nx, ny       ! Dimensions of output-grid
-type(c_ptr)                     :: elev_fft
+integer(c_int), value           :: nx_fft, ny_fft       ! Dimensions of output-grid
+real(c_wp), allocatable, intent(out) :: elev_arr(:, :)
 type(spectral_wave_data_c), pointer :: swd
-integer :: nx_f, ny_f
+
+integer :: nx_fft_f, ny_fft_f
         
-nx_f = nx
-ny_f = ny
+nx_fft_f = nx_fft
+ny_fft_f = ny_fft
 call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
 
-if (.not. allocated(elev_arr)) allocate(elev_arr(nx, ny))
+allocate(elev_arr(nx_fft, ny_fft))
+elev_arr = swd % obj % elev_fft(nx_fft_f, ny_fft_f)
 
-elev_arr = swd % obj % elev_fft(nx_f, ny_f)
-elev_fft = c_loc(elev_arr(1, 1))
-
-!
-end function elev_fft
+end subroutine elev_fft
 
 !==============================================================================
 
 subroutine close_fft() bind(c, name='swd_api_close_fft')
 
-if (allocated(elev_arr)) deallocate(elev_arr)
+! if (allocated(elev_arr)) deallocate(elev_arr)
 
 end subroutine close_fft
 
