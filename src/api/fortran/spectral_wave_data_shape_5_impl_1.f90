@@ -80,6 +80,7 @@ contains
     procedure :: get_logical        ! Extract a specified logical parameter
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
+    procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
 end type spectral_wave_data_shape_5_impl_1
 
 interface spectral_wave_data_shape_5_impl_1
@@ -1746,6 +1747,18 @@ case default
 end select
 !
 end function get_chr
+
+!==============================================================================
+
+function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: elev(:, :)
+
+allocate(elev(nx_fft_in, ny_fft_in))
+elev = 0.0_knd
+
+end function elev_fft
 
 !==============================================================================
 

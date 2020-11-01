@@ -19,6 +19,7 @@ include(${DIR_SRC_API_F}/Cmake/core_files.cmake)
 set(SRC_API_F
     ${SRC_CORE}
     ${DIR_SRC_API_PY}/kind_values.f90
+    ${DIR_SRC_API_C}/spectral_wave_data.c
 )
 
 add_library(${LIB} SHARED ${SRC_API_F})

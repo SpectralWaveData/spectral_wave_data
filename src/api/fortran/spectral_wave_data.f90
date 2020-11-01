@@ -88,6 +88,7 @@ contains
     procedure(get_real),    deferred :: get_real          ! Extract a specified float parameter
     procedure(get_chr),     deferred :: get_chr           ! Extract a specified char parameter
     procedure(close),       deferred :: close             ! Manual destructor
+    procedure(elev_fft),    deferred :: elev_fft          ! Surface elevation on a regular grid using FFT 
     procedure :: error_raised                             ! Return .true. if error has been signaled
     procedure :: error_id                                 ! Return error id
     procedure :: error_msg                                ! Return error message
@@ -257,6 +258,13 @@ abstract interface
         import
         class(spectral_wave_data) :: self  ! Object to destruct
     end subroutine close
+
+    function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+        import
+        class(spectral_wave_data), intent(inout) :: self ! Actual class
+        integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+        real(knd), allocatable :: elev(:, :)
+    end function elev_fft
 
 end interface
 

@@ -226,7 +226,7 @@ end if
 contains
 
     subroutine dump(array, n)
-        complex(wp), intent(in) :: array(:)
+        complex(wp), intent(in) :: array(0:)
         integer,     intent(in) :: n
         integer :: j
         do j = 0, n

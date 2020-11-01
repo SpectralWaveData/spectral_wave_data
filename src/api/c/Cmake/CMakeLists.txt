@@ -28,4 +28,4 @@ add_library(${LIB} STATIC ${SRC_API_F})
 target_include_directories(${LIB} INTERFACE ${DIR_SRC_API_C})
 
 add_executable(${PROG} ${SRC_C_APP})
-target_link_libraries(${PROG} PRIVATE ${LIB}) 
+target_link_libraries(${PROG} PRIVATE ${LIB} fftw3)
