@@ -651,7 +651,7 @@ class SpectralWaveData(object):
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
             msg = swdlib.swd_api_error_get_msg(self.obj).decode()
-            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            swdlib.swd_api_error_clear(self.obj)  # To simplify safe recovery...
             if id == 1001:
                 raise SwdFileCantOpenError(msg)
             else:
@@ -692,7 +692,7 @@ class SpectralWaveData(object):
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
             msg = swdlib.swd_api_error_get_msg(self.obj).decode()
-            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            swdlib.swd_api_error_clear(self.obj)  # To simplify safe recovery...
             if id == 1001:
                 raise SwdFileCantOpenError(msg)
             elif id == 1003:
