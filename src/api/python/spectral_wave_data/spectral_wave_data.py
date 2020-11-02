@@ -810,10 +810,6 @@ class SpectralWaveData(object):
         
 
         """
-        import numpy as np
-        from ctypes import POINTER, c_double, cast
-        from .ISO_Fortran_binding import CFI_cdesc_t_2D
-
         # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
         CFI_obj = swdlib.swd_api_elev_fft(self.obj, nx_fft, ny_fft)    
         

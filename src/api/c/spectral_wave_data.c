@@ -8,7 +8,7 @@ CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft) {
     CFI_cdesc_t *desc_elev_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(2)));
 
     int rc = CFI_establish(desc_elev_arr,
-		                   NULL,
+                           NULL,
                            CFI_attribute_allocatable,
                            CFI_type_double,
                            sizeof(double),
@@ -31,7 +31,7 @@ CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft) {
     CFI_cdesc_t *desc_x_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(1)));
 
     int rc = CFI_establish(desc_x_arr,
-		                   NULL,
+                           NULL,
                            CFI_attribute_allocatable,
                            CFI_type_double,
                            sizeof(double),
@@ -54,7 +54,7 @@ CFI_cdesc_t *swd_api_y_fft(void *swd, int ny_fft) {
     CFI_cdesc_t *desc_y_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(1)));
 
     int rc = CFI_establish(desc_y_arr,
-		                   NULL,
+                           NULL,
                            CFI_attribute_allocatable,
                            CFI_type_double,
                            sizeof(double),
