@@ -141,7 +141,7 @@ integer, optional, intent(in) :: nx_fft_in
 integer :: nx_fft
 
 character(len=*), parameter :: err_proc = 'swd_fft::nx_fft'
-character(len=2500) :: err_msg(5)
+character(len=250) :: err_msg(5)
 
 if (present(nx_fft_in)) then
     if (nx_fft_in < 0) then
@@ -154,7 +154,7 @@ if (present(nx_fft_in)) then
         write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 
         write(err_msg(4),'(a)') "smallest grid resolving all coefficients in the swd-file."
         write(err_msg(5),'(a, I0)') 'Smallest possible nx_fft = ', 2*self % nsumx
-        call self % error % set_id_msg(err_proc, 1004, err_msg)
+        call self % error % set_id_msg(err_proc, 1004, err_msg, 1)
         nx_fft = 1
         return
     end if
@@ -172,14 +172,14 @@ integer, optional, intent(in) :: ny_fft_in
 integer :: ny_fft
 
 character(len=*), parameter :: err_proc = 'swd_fft::ny_fft'
-character(len=2500) :: err_msg(5)
+character(len=250) :: err_msg(5)
 
 if (self % nsumy == 1) then  ! 1D
     if (present(ny_fft_in)) then
         if (abs(ny_fft_in) /= 1) then
             write(err_msg(1),'(a)') "Invalid grid size ny_fft."
             write(err_msg(2),'(a)') "ny_fft must be 1 for unidirectional waves."
-            call self % error % set_id_msg(err_proc, 1004, err_msg(1:2))
+            call self % error % set_id_msg(err_proc, 1004, err_msg(1:2), 1)
             ny_fft = 1
             return
         end if
@@ -196,7 +196,7 @@ else if (present(ny_fft_in)) then
         write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 
         write(err_msg(4),'(a)') "smallest grid resolving all coefficients in the swd-file."
         write(err_msg(5),'(a, I0)') 'Smallest possible ny_fft = ', 2*self % nsumy
-        call self % error % set_id_msg(err_proc, 1004, err_msg)
+        call self % error % set_id_msg(err_proc, 1004, err_msg, 1)
         ny_fft = 1
         return
     end if

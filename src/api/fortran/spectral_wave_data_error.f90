@@ -56,23 +56,35 @@ end function raised
 
 !==============================================================================
 
-subroutine set_id_msg(self, proc, id, msg)
+subroutine set_id_msg(self, proc, id, msg, fmt_in)
 class(swd_error), intent(out) :: self   ! Error handler
 integer,          intent(in)  :: id     ! Error code
 character(len=*), intent(in)  :: proc   ! Name of calling procedure
 character(len=*), intent(in)  :: msg(:) ! Error messages
+integer, optional, intent(in)  :: fmt_in ! Set to /=0 for format more suitable for 
+                                         ! "forwarding" errors from other modules/routines
 !
-integer :: i, n
+integer :: i, n, fmt
 character(len=*), parameter :: header = "Error detected in Spectral_Wave_Data:"
 character(len=24) :: cid
 !
 call self % clear()
+!
+fmt = 0
+if (present(fmt_in)) then
+    fmt = fmt_in
+end if
 
 self % id = id
 write(cid,'(a,i0)') 'SWD error code = #', id
 
 ! Count size of error string
-n = len_trim(header) + 1 + len_trim(proc) + 1 + len_trim(cid)
+if (fmt == 0) then
+    n = len_trim(header) + 1 + len_trim(proc) + 1 + len_trim(cid)
+else
+    n = len_trim(proc)
+end if
+
 do i = 1, size(msg)
     if (len_trim(msg(i)) == 0) cycle
     n = n + 1 ! Insert end-of-line character
@@ -81,7 +93,11 @@ end do
 allocate(character(len=n) :: self % msg)
 
 ! Assign to self %msg
-self % msg = trim(header) // new_line('fortran') // trim(proc) // new_line('fortran') // trim(cid)
+if (fmt == 0) then
+    self % msg = trim(header) // new_line('fortran') // trim(proc) // new_line('fortran') // trim(cid)
+else
+    self % msg = trim(proc)
+end if
 do i = 1, size(msg)
     if (len_trim(msg(i)) == 0) cycle
     self % msg = trim(self % msg) // new_line('fortran') // trim(msg(i))
