@@ -148,9 +148,6 @@ swdlib.swd_api_close.restype = c_void_p
 swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
 swdlib.swd_api_elev_fft.restype = POINTER(CFI_cdesc_t_2D)
 
-swdlib.swd_api_elev_fft_deallocate.argtypes = [POINTER(CFI_cdesc_t_2D)]
-swdlib.swd_api_elev_fft_deallocate.restype = c_void_p
-
 swdlib.swd_api_x_fft.argtypes = [c_void_p, c_int]
 swdlib.swd_api_x_fft.restype = POINTER(CFI_cdesc_t_1D)
 

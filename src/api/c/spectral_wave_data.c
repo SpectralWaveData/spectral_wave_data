@@ -22,11 +22,6 @@ CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft) {
 
 }
 
-void swd_api_elev_fft_deallocate(CFI_cdesc_t *desc_elev_arr) {
-    int rc = CFI_deallocate(desc_elev_arr);
-    assert(CFI_SUCCESS == rc);
-}
-
 CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft) {
     CFI_cdesc_t *desc_x_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(1)));
 
@@ -43,11 +38,6 @@ CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft) {
 
     return desc_x_arr;
 
-}
-
-void swd_api_x_fft_deallocate(CFI_cdesc_t *desc_x_arr) {
-    int rc = CFI_deallocate(desc_x_arr);
-    assert(CFI_SUCCESS == rc);
 }
 
 CFI_cdesc_t *swd_api_y_fft(void *swd, int ny_fft) {
@@ -68,7 +58,7 @@ CFI_cdesc_t *swd_api_y_fft(void *swd, int ny_fft) {
 
 }
 
-void swd_api_y_fft_deallocate(CFI_cdesc_t *desc_y_arr) {
-    int rc = CFI_deallocate(desc_y_arr);
+void swd_api_fft_deallocate(CFI_cdesc_t *desc_arr) {
+    int rc = CFI_deallocate(desc_arr);
     assert(CFI_SUCCESS == rc);
 }

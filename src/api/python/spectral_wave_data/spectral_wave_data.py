@@ -829,7 +829,7 @@ class SpectralWaveData(object):
         data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
         res = np.squeeze(np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out)).T).copy()
 
-        swdlib.swd_api_elev_fft_deallocate(CFI_obj)
+        swdlib.swd_api_fft_deallocate(CFI_obj)
         
         return res
 
@@ -875,7 +875,7 @@ class SpectralWaveData(object):
         data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
         res = np.ctypeslib.as_array(data_pointer, shape=(nx_out, )).copy()
 
-        swdlib.swd_api_x_fft_deallocate(CFI_obj)
+        swdlib.swd_api_fft_deallocate(CFI_obj)
         
         return res
     
@@ -921,6 +921,6 @@ class SpectralWaveData(object):
         data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
         res = np.ctypeslib.as_array(data_pointer, shape=(ny_out, )).copy()
 
-        swdlib.swd_api_y_fft_deallocate(CFI_obj)
+        swdlib.swd_api_fft_deallocate(CFI_obj)
         
         return res
