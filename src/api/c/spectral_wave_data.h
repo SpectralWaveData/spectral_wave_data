@@ -177,12 +177,8 @@ void swd_api_strip(void *swd, real_swd tmin, real_swd tmax, const char *file_swd
 // wave elevation FFT
 // Eventual error signals (ref constructor): 1004
 void swd_api_elev_fft_(void *swd, int nx_fft, int ny_fft, CFI_cdesc_t *desc_elev_arr); // direct call to fortran
-CFI_cdesc_t *swd_api_elev_fft_obj(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
-void swd_api_elev_fft_obj_deallocate(CFI_cdesc_t *desc_elev_arr); // deallocating the CFI_cdesc_t object
-
-// deallocate arrays used for FFT evaluations
-// Eventual error signals (ref constructor): None
-void swd_api_close_fft();
+CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
+void swd_api_elev_fft_deallocate(CFI_cdesc_t *desc_elev_arr); // deallocating the CFI_cdesc_t object
 
 // ===================================================================
 //  Provide parameters from the swd-file:
