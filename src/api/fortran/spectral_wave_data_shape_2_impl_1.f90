@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -79,8 +80,6 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
-    procedure, private :: swd_to_fft_coeffs
-    procedure, private :: grid_size_fft
 end type spectral_wave_data_shape_2_impl_1
 
 interface spectral_wave_data_shape_2_impl_1
@@ -283,6 +282,9 @@ if (present(nsumx)) then
 else
     self % nsumx = n
 end if
+
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, 1, self % get_real('sizex'), 0.0_wp)
 
 if (present(ipol)) then
     call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
@@ -1533,80 +1535,22 @@ end function get_chr
 !==============================================================================
 
 function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
-use fft_fftw3_def, only : irfft2
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
-integer :: nx_fft, ny_fft
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-call self % grid_size_fft(nx_fft, ny_fft, nx_fft_in, ny_fft_in)
+elev = self % fft % fft_field_1D(self % h_cur(0:self % nsumx), nx_fft_in)
 
-if (self % error % raised()) then
-    allocate(elev(1, 1))
-    elev = huge(elev)
-    return
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
 end if
-
-elev = irfft2(self % swd_to_fft_coeffs(self % h_cur(0:self % nsumx)), 2*self % nsumx, 1, nx_fft, ny_fft)
 
 end function elev_fft
-
-!==============================================================================
-
-function swd_to_fft_coeffs(self, swd_coeffs) result(fft_coeffs)
-class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
-complex(wp), dimension(0:self % nsumx), intent(in) :: swd_coeffs
-complex(wp), dimension(self % nsumx + 1, 1) :: fft_coeffs
-integer :: ix, iy
-real(wp) :: sc
-
-fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
-fft_coeffs(1:self % nsumx + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % nsumx))
-
-end function swd_to_fft_coeffs
-
-!==============================================================================
-
-subroutine grid_size_fft(self, nx_fft, ny_fft, nx_fft_in, ny_fft_in)
-class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
-integer, optional, intent(in) :: nx_fft_in, ny_fft_in
-integer, intent(out) :: nx_fft, ny_fft
-character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::grid_size_fft'
-character(len=250) :: err_msg(5)
-
-if (present(nx_fft_in)) then
-    if (nx_fft_in < 0) then
-        nx_fft = -nx_fft_in*2*self % nsumx
-    elseif (nx_fft_in >= 2*self % nsumx) then
-        nx_fft = nx_fft_in
-    else
-        write(err_msg(1),'(a)') "Invalid grid size nx_fft."
-        write(err_msg(2),'(a)') "nx_fft must either be a negative integer, or a positive"
-        write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 
-        write(err_msg(4),'(a)') "smallest grid resolving all coefficients in the swd-file."
-        write(err_msg(5),'(a, I0)') 'Smalles possible nx_fft = ', 2*self % nsumx
-        call self % error % set_id_msg(err_proc, 1004, err_msg)
-        nx_fft = huge(nx_fft)
-        ny_fft = huge(ny_fft)
-        return
-    end if
-else
-    nx_fft = 2*self % nsumx
-end if
-
-if (present(ny_fft_in)) then
-    if (abs(ny_fft_in) /= 1) then
-        write(err_msg(1),'(a)') "Invalid grid size ny_fft."
-        write(err_msg(2),'(a)') "ny_fft must be 1 for unidirectional waves."
-        call self % error % set_id_msg(err_proc, 1004, err_msg(1:2))
-        nx_fft = huge(nx_fft)
-        ny_fft = huge(ny_fft)
-        return
-    end if
-end if
-ny_fft = 1
-
-end subroutine grid_size_fft
 
 !==============================================================================
 

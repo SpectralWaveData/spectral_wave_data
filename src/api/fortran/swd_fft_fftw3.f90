@@ -1,8 +1,8 @@
-module fft_fftw3_def
+module swd_fft_fftw3
 
-use, intrinsic :: iso_c_binding!, only: c_ptr
+use, intrinsic :: iso_c_binding
 
-use kind_values, only: wp => kind_swd_interface, c_wp => kind_swd_c
+use kind_values, only: wp => kind_swd_interface
 
 implicit none
 
@@ -96,4 +96,4 @@ end function zeropad
 
 !==============================================================================
 
-end module fft_fftw3_def
+end module swd_fft_fftw3

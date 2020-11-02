@@ -180,6 +180,18 @@ void swd_api_elev_fft_(void *swd, int nx_fft, int ny_fft, CFI_cdesc_t *desc_elev
 CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
 void swd_api_elev_fft_deallocate(CFI_cdesc_t *desc_elev_arr); // deallocating the CFI_cdesc_t object
 
+// x-grid FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_x_fft_(void *swd, int nx_fft, CFI_cdesc_t *desc_x_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft); // function returning a CFI_cdesc_t object
+void swd_api_x_fft_deallocate(CFI_cdesc_t *desc_x_arr); // deallocating the CFI_cdesc_t object
+
+// y-grid FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_y_fft_(void *swd, int ny_fft, CFI_cdesc_t *desc_y_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_y_fft(void *swd, int ny_fft); // function returning a CFI_cdesc_t object
+void swd_api_y_fft_deallocate(CFI_cdesc_t *desc_y_arr); // deallocating the CFI_cdesc_t object
+
 // ===================================================================
 //  Provide parameters from the swd-file:
 
