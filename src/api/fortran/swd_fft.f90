@@ -133,6 +133,28 @@ end function fft_field_1D
 
 !==============================================================================
 
+function fft_field_2D(self, swd_coeffs, nx_fft_in, ny_fft_in) result(f)
+class(swd_fft), intent(inout) :: self
+complex(wp), intent(in) :: swd_coeffs(:, 0:, 0:)
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(wp), allocatable :: f(:, :)
+integer :: nx_fft, ny_fft
+
+nx_fft = self % nx_fft(nx_fft_in)
+ny_fft = self % ny_fft(ny_fft_in)
+
+if (self % error % raised()) then
+    allocate(f(1, 1))
+    f = huge(f)
+    return
+end if
+
+f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy, nx_fft, ny_fft)
+
+end function fft_field_1D
+
+!==============================================================================
+
 function swd_to_fft_coeffs_1D(self, swd_coeffs) result(fft_coeffs)
 class(swd_fft), intent(inout) :: self
 complex(wp), intent(in) :: swd_coeffs(0:self % nsumx)
@@ -142,6 +164,59 @@ fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
 fft_coeffs(1:self % nsumx + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % nsumx))
 
 end function swd_to_fft_coeffs_1D
+
+!==============================================================================
+
+function swd_to_fft_coeffs_2D(self, swd_coeffs) result(fft_coeffs)
+class(swd_fft), intent(in) :: self  ! Actual class
+complex(wp), intent(in) :: swd_coeffs(2, 0:self % nsumy, 0:self % nsumx)
+complex(wp), dimension(self % nsumx + 1, 2*self % nsumy) :: fft_coeffs
+integer :: ix, iy
+real(wp) :: sc
+
+fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
+
+do ix = 0, self % nsumx
+    sc = 0.5_wp ! scaling factor (due to complex conjugate)
+    if (ix == 0) sc = 1.0_wp ! special case for zero-frequency
+    do iy = -self % nsumy, -1
+        fft_coeffs(ix + 1, self % ny_hosm + iy + 1) = sc*conjg(swd_coeffs(2,-iy,ix))
+    end do
+    do iy = 0, self % nsumy
+        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(1, iy, ix))
+        if (iy == self % nsumy) cycle
+        fft_coeffs(ix + 1, 2*self % nsumy - iy) = sc*conjg(swd_coeffs(2, iy, ix))
+    end do
+end do
+
+
+    do jx = 0, nsumx
+       sc = 2.0_wp ! scaling factor between fft and swd format
+       if (jx == 1) sc = 1.0_wp ! special case for zero-frequency
+       if (mod(2*nsumx, 2) == 0 .and. jx == nsumx + 1) sc = 1.0_wp ! special case for nyquist-frequency for even nx
+       ! the first negative freq (-ny_swd)
+       if (mod(2*nsumy, 2) == 0) then
+            h(2, nsumy, jx) = cmplx(0.5_wp*sc*conjg(array(jx, nsumy + 1)), kind=c_float) 
+       else
+            h(2, nsumy, jx) = cmplx(sc*conjg(array(jx, nsumy + 1)), kind=c_float)
+       end if
+       ! all other negative freqs up to -1
+       do jy = nsumy + 2, 2*nsumy
+          h(2, 2*nsumy + 1 - jy, ix) = cmplx(sc*conjg(array(jx,jy)), kind=c_float)
+       end do
+       ! 0-freq and all positive freqs
+       do jy = 1, nsumy
+          h(1, jy - 1, ix) = cmplx(sc*conjg(array(jx, jy)), kind=c_float)
+       end do
+       ! if even ny, nyquist freq must be on positive side as well
+       if (mod(2*nsumy, 2) == 0) then
+            h(1, nsumy, ix) = cmplx(0.5_wp*sc*conjg(array(jx, nsumy + 1)), kind=c_float)
+       end if
+    end do
+
+
+
+end function swd_to_fft_coeffs_2D
 
 !==============================================================================
 
