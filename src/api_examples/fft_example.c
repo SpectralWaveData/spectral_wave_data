@@ -1,7 +1,6 @@
 #include <stdbool.h> /* bool */
 #include <stdio.h> /* for fprintf and stderr */
 #include <stdlib.h> /* for exit */
-#include <assert.h>
 #include <string.h>
 #include <math.h>
 
@@ -35,8 +34,8 @@ swd_api_update_time(swd, 0.0);
 
 double x, y, eta_fft, eta;
 
-CFI_cdesc_t *elev_fft = swd_api_elev_fft(swd, -1, -1);
-CFI_cdesc_t *x_fft = swd_api_x_fft(swd, -1);
+CFI_cdesc_t *elev_fft = swd_api_elev_fft(swd, -4, -1);
+CFI_cdesc_t *x_fft = swd_api_x_fft(swd, -4);
 CFI_cdesc_t *y_fft = swd_api_y_fft(swd, -1);
 
 if (swd_api_error_raised(swd)) {
@@ -47,8 +46,6 @@ if (swd_api_error_raised(swd)) {
 // get the array dimensions
 int nx_fft = x_fft->dim[0].extent;
 int ny_fft = y_fft->dim[0].extent;
-assert(elev_fft->dim[0].extent == nx_fft);
-assert(elev_fft->dim[1].extent == ny_fft);
 
 // get the lower bounds (important for the indexing below)
 // NOTE: Currently this seems to follow Fortran indexing with 1 as lower bounds, not sure if this
@@ -56,8 +53,17 @@ assert(elev_fft->dim[1].extent == ny_fft);
 //       into account in the loops below it should be ok.
 int lbx = x_fft->dim[0].lower_bound;  // seems to always be 1
 int lby = y_fft->dim[0].lower_bound;  // seems to always be 1
-assert(elev_fft->dim[0].lower_bound == lbx);
-assert(elev_fft->dim[1].lower_bound == lby);
+
+// make sure array dimensions and lower bounds agree
+if (elev_fft->dim[0].extent != nx_fft || elev_fft->dim[1].extent != ny_fft ||
+    elev_fft->dim[0].lower_bound != lbx || elev_fft->dim[1].lower_bound != lby ) {
+    fprintf(stderr, "Array dimensions and/or lower bounds do not agree\n");
+    fprintf(stderr, "eta[0]: lower_bound = %ld, extent = %ld\n", elev_fft->dim[0].lower_bound, elev_fft->dim[0].extent);
+    fprintf(stderr, "eta[1]: lower_bound = %ld, extent = %ld\n", elev_fft->dim[1].lower_bound, elev_fft->dim[1].extent);
+    fprintf(stderr, "x     : lower_bound = %ld, extent = %ld\n", x_fft->dim[0].lower_bound, x_fft->dim[0].extent);
+    fprintf(stderr, "y     : lower_bound = %ld, extent = %ld\n", y_fft->dim[0].lower_bound, y_fft->dim[0].extent);
+    exit(EXIT_FAILURE);
+    }
 
 // for indexing arrays
 CFI_index_t sub_x[1], sub_y[1], sub_xy[2];
