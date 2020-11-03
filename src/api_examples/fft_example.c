@@ -59,11 +59,6 @@ int lby = y_fft->dim[0].lower_bound;  // seems to always be 1
 assert(elev_fft->dim[0].lower_bound == lbx);
 assert(elev_fft->dim[1].lower_bound == lby);
 
-printf("eta[0]: lower_bound = %ld, extent = %ld, stride = %ld\n", elev_fft->dim[0].lower_bound, elev_fft->dim[0].extent, elev_fft->dim[0].sm);
-printf("eta[1]: lower_bound = %ld, extent = %ld, stride = %ld\n", elev_fft->dim[1].lower_bound, elev_fft->dim[1].extent, elev_fft->dim[1].sm);
-printf("x     : lower_bound = %ld, extent = %ld, stride = %ld\n", x_fft->dim[0].lower_bound, x_fft->dim[0].extent, x_fft->dim[0].sm);
-printf("y     : lower_bound = %ld, extent = %ld, stride = %ld\n", y_fft->dim[0].lower_bound, y_fft->dim[0].extent, y_fft->dim[0].sm);
-
 // for indexing arrays
 CFI_index_t sub_x[1], sub_y[1], sub_xy[2];
 
@@ -84,11 +79,7 @@ for (int j = lby; j < ny_fft + lby; j++) {
         eta = swd_api_elev(swd, x, y);
         err = fabs(eta - eta_fft);
         err_max = MAX(err_max, err);
-        
-        printf("i = %d, j = %d\n", i, j);
-        printf("x = %g, y = %g, eta_fft = %g, eta = %g, err = %g\n\n", x, y, eta_fft, eta, err);
-    }
-    
+    }  
 }
 printf("Largest error between elev() and elev_fft(): err_max = %g \n", err_max);
 
@@ -100,6 +91,3 @@ swd_api_close(swd);
 
 return 0;
 }
-
-
-
