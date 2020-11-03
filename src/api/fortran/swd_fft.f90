@@ -29,7 +29,8 @@ public :: swd_fft  ! Class for handling FFT-based evaluation
 
 type :: swd_fft
     private
-    integer :: sizex, sizey
+    real(wp) :: dkx, dky
+    real(wp) :: sizex, sizey
     integer :: nsumx, nsumy
     type(swd_error), public :: error
 contains
@@ -46,26 +47,31 @@ interface swd_fft
     module procedure constructor
 end interface swd_fft
 
+real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+
 contains
 
 !==============================================================================
 
-function constructor(nsumx, nsumy, sizex, sizey) result(self)
+function constructor(nsumx, nsumy, dkx, dky) result(self)
 integer, intent(in) :: nsumx, nsumy
-real(wp), intent(in) :: sizex, sizey
+real(wp), intent(in) :: dkx, dky
 
 type(swd_fft) :: self
 
 self % nsumx = nsumx
-self % sizex = sizex
+self % dkx = dkx
+self % sizex = 2.0_wp*pi/dkx
 
 ! it is assumed nsumy <= 1 means long-crested waves
 if (nsumy <= 1) then
     self % nsumy = 1
+    self % dky = 0.0_wp
     self % sizey = 0.0_wp
 else
     self % nsumy = nsumy
-    self % sizey = sizey
+    self % dky = dky
+    self % sizey = 2.0_wp*pi/dky
 end if
 
 call self % error % clear()
@@ -78,11 +84,13 @@ function x_fft(self, nx_fft_in)
 class(swd_fft), intent(inout) :: self
 integer, optional, intent(in) :: nx_fft_in
 real(wp), allocatable :: x_fft(:)
+real(wp) :: dx
 integer :: nx_fft
 integer :: i
 
 nx_fft = self % nx_fft(nx_fft_in)
-x_fft = [(real(i, wp)*self % sizex/real(nx_fft, wp), i=0, nx_fft - 1)]
+dx = self % sizex/real(nx_fft, wp)
+x_fft = [(i*dx, i=0, nx_fft - 1)]
 
 end function x_fft
 
@@ -92,11 +100,13 @@ function y_fft(self, ny_fft_in)
 class(swd_fft), intent(inout) :: self
 integer, optional, intent(in) :: ny_fft_in
 real(wp), allocatable :: y_fft(:)
+real(wp) :: dy
 integer :: ny_fft
 integer :: i
 
 ny_fft = self % ny_fft(ny_fft_in)
-y_fft = [(real(i, wp)*self % sizey/real(ny_fft, wp), i=0, ny_fft - 1)] 
+dy = self % sizey/real(ny_fft, wp)
+y_fft = [(i*dy, i=0, ny_fft - 1)] 
 
 end function y_fft
 

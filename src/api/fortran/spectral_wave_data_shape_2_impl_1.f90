@@ -284,7 +284,7 @@ else
 end if
 
 ! make object for FFT-based evaluations
-self % fft = swd_fft(self % nsumx, 1, self % get_real('sizex'), 0.0_wp)
+self % fft = swd_fft(self % nsumx, 1, self % dk, 0.0_wp)
 
 if (present(ipol)) then
     call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
