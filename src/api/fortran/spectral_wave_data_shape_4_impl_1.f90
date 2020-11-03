@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -306,6 +307,9 @@ else
     self % nsumy = ny
 end if
 
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, self % nsumy, self % dkx, self % dky)
+
 if (present(ipol)) then
     call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
 else
@@ -319,7 +323,6 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1004, err_msg(1:3))
     return
 end if
-
 
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
@@ -417,7 +420,6 @@ return
 err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
-
 return
 
 99 continue
@@ -1644,9 +1646,17 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_4_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumx, 0:self % nsumy), nx_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
 
 end function elev_fft
 

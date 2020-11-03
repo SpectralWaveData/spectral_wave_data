@@ -13,10 +13,10 @@ int main() {
 void *swd;
 
 // First we define constructor parameters (see application_swd_api.c)
-char *file_swd = "n5.swd";
+char *file_swd = "shape2.swd";
 double x0 = 0.0, y0 = 0.0, t0 = 0.0, beta = 0.0;
 int impl = 0;
-int nsumx = -1, nsumy = -1;   // Negative: apply all components from the swd-file.
+int nsumx = 999, nsumy = -1;   // Negative: apply all components from the swd-file.
 double rho = 1025.0;
 int ipol = 0;   // C^2 continous
 int norder = 0;   // Apply same order as specified in SWD file
@@ -34,8 +34,8 @@ swd_api_update_time(swd, 0.0);
 
 double x, y, eta_fft, eta;
 
-CFI_cdesc_t *elev_fft = swd_api_elev_fft(swd, -4, -1);
-CFI_cdesc_t *x_fft = swd_api_x_fft(swd, -4);
+CFI_cdesc_t *elev_fft = swd_api_elev_fft(swd, -1, -1);
+CFI_cdesc_t *x_fft = swd_api_x_fft(swd, -1);
 CFI_cdesc_t *y_fft = swd_api_y_fft(swd, -1);
 
 if (swd_api_error_raised(swd)) {
@@ -63,7 +63,7 @@ if (elev_fft->dim[0].extent != nx_fft || elev_fft->dim[1].extent != ny_fft ||
     fprintf(stderr, "x     : lower_bound = %ld, extent = %ld\n", x_fft->dim[0].lower_bound, x_fft->dim[0].extent);
     fprintf(stderr, "y     : lower_bound = %ld, extent = %ld\n", y_fft->dim[0].lower_bound, y_fft->dim[0].extent);
     exit(EXIT_FAILURE);
-    }
+}
 
 // for indexing arrays
 CFI_index_t sub_x[1], sub_y[1], sub_xy[2];

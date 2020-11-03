@@ -36,11 +36,13 @@ type :: swd_fft
 contains
     private
     procedure, public :: fft_field_1D
+    procedure, public :: fft_field_2D
     procedure, public :: x_fft
     procedure, public :: y_fft
     procedure :: nx_fft
     procedure :: ny_fft
     procedure :: swd_to_fft_coeffs_1D
+    procedure :: swd_to_fft_coeffs_2D
 end type swd_fft
 
 interface swd_fft
@@ -151,7 +153,7 @@ end if
 
 f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy, nx_fft, ny_fft)
 
-end function fft_field_1D
+end function fft_field_2D
 
 !==============================================================================
 
@@ -162,6 +164,7 @@ complex(wp), dimension(self % nsumx + 1, 1) :: fft_coeffs
 
 fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
 fft_coeffs(1:self % nsumx + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % nsumx))
+fft_coeffs(self % nsumx + 1, 1) = 2.0_wp*fft_coeffs(self % nsumx + 1, 1) ! nyquist wavenumber
 
 end function swd_to_fft_coeffs_1D
 
@@ -177,44 +180,23 @@ real(wp) :: sc
 fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
 
 do ix = 0, self % nsumx
-    sc = 0.5_wp ! scaling factor (due to complex conjugate)
-    if (ix == 0) sc = 1.0_wp ! special case for zero-frequency
-    do iy = -self % nsumy, -1
-        fft_coeffs(ix + 1, self % ny_hosm + iy + 1) = sc*conjg(swd_coeffs(2,-iy,ix))
+    sc = 0.5_wp ! scaling factor between fft and swd format
+    if (ix == 0) sc = 1.0_wp ! special case for zero-wavenumber
+    if (ix == self % nsumx) sc = 1.0_wp ! special case for nyquist wavenumber
+
+    ! 0-freq and all positive wavenumbers
+    do iy = 1, self % nsumy
+        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(1, iy - 1, ix))
     end do
-    do iy = 0, self % nsumy
-        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(1, iy, ix))
-        if (iy == self % nsumy) cycle
-        fft_coeffs(ix + 1, 2*self % nsumy - iy) = sc*conjg(swd_coeffs(2, iy, ix))
-    end do
+
+    ! the largest negative wavenumber (nyquist)
+    fft_coeffs(ix + 1, self % nsumy + 1) = sc*(conjg(swd_coeffs(1, self % nsumy, ix) + swd_coeffs(2, self % nsumy, ix)))
+
+    ! all other negative wavenumbers up to -1
+    do iy = self % nsumy + 2, 2*self % nsumy
+        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(2, 2*self % nsumy + 1 - iy, ix))
+    end do   
 end do
-
-
-    do jx = 0, nsumx
-       sc = 2.0_wp ! scaling factor between fft and swd format
-       if (jx == 1) sc = 1.0_wp ! special case for zero-frequency
-       if (mod(2*nsumx, 2) == 0 .and. jx == nsumx + 1) sc = 1.0_wp ! special case for nyquist-frequency for even nx
-       ! the first negative freq (-ny_swd)
-       if (mod(2*nsumy, 2) == 0) then
-            h(2, nsumy, jx) = cmplx(0.5_wp*sc*conjg(array(jx, nsumy + 1)), kind=c_float) 
-       else
-            h(2, nsumy, jx) = cmplx(sc*conjg(array(jx, nsumy + 1)), kind=c_float)
-       end if
-       ! all other negative freqs up to -1
-       do jy = nsumy + 2, 2*nsumy
-          h(2, 2*nsumy + 1 - jy, ix) = cmplx(sc*conjg(array(jx,jy)), kind=c_float)
-       end do
-       ! 0-freq and all positive freqs
-       do jy = 1, nsumy
-          h(1, jy - 1, ix) = cmplx(sc*conjg(array(jx, jy)), kind=c_float)
-       end do
-       ! if even ny, nyquist freq must be on positive side as well
-       if (mod(2*nsumy, 2) == 0) then
-            h(1, nsumy, ix) = cmplx(0.5_wp*sc*conjg(array(jx, nsumy + 1)), kind=c_float)
-       end if
-    end do
-
-
 
 end function swd_to_fft_coeffs_2D
 

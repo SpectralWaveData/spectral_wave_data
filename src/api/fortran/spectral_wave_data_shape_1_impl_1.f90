@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -275,6 +276,9 @@ if (present(nsumx)) then
 else
     self % nsumx = n
 end if
+
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, 1, self % dk, 0.0_wp)
 
 if (present(ipol)) then
     call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
@@ -1449,9 +1453,17 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_1_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_1_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+elev = self % fft % fft_field_1D(self % h_cur(0:self % nsumx), nx_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
 
 end function elev_fft
 
