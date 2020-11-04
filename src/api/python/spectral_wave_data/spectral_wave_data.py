@@ -70,7 +70,7 @@ class SpectralWaveData(object):
 
     """
 
-    def __init__(self, file_swd, x0, y0, t0, beta, rho=1025.0, nsumx=-1, 
+    def __init__(self, file_swd, x0=0.0, y0=0.0, t0=0.0, beta=0.0, rho=1025.0, nsumx=-1, 
                  nsumy=-1, impl=0, ipol=0, norder=0, dc_bias=False):
         """Constructor
 
@@ -78,12 +78,12 @@ class SpectralWaveData(object):
         ----------
         file_swd : str
             The name of the swd file defining the ocean waves.
-        x0, y0 : float
+        x0, y0 : float, optional
             The origin of the application wave coordinate system relative to the
             SWD coordinate system. [m]
-        t0 : float
+        t0 : float, optional
             The SWD time corresponding to t=0 in the application simulation. [s]
-        beta : float
+        beta : float, optional
             Rotation of the SWD x-axis relative to the application x-axis. [deg]
         rho : float, optional
             Density of water. [kg/m^3] (Only relevant for pressure calculations)
