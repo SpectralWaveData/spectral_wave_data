@@ -296,10 +296,16 @@ else
 end if
 ! Due to symmetry nsumy is ignored
 
-if (present(ipol)) then
-    call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
+if (self % nsteps == 1) then
+    dt_tpol = 1.0_wp
 else
-    call self % tpol % construct(ischeme=0, delta_t=self % dt, ierr=i)
+    dt_tpol = self % dt
+end if
+
+if (present(ipol)) then
+    call self % tpol % construct(ischeme=ipol, delta_t=dt_tpol, ierr=i)
+else
+    call self % tpol % construct(ischeme=0, delta_t=dt_tpol, ierr=i)
 end if
 self % ipol = self % tpol % ischeme
 if (i /= 0) then
@@ -350,14 +356,18 @@ end if
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
     inquire(self % unit, pos=self % ipos0) 
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
     read(self % unit, end=98, err=99) h(:,:,2)
     read(self % unit, end=98, err=99) ht(:,:,2)
     if (self % amp < 3) then
         read(self % unit, end=98, err=99) c(:,:,2)
         read(self % unit, end=98, err=99) ct(:,:,2)
-    else
-        c(:,:,2) = czero_c
-        ct(:,:,2) = czero_c
     end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)

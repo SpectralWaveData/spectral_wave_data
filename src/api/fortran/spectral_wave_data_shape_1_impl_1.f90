@@ -327,15 +327,19 @@ end if
 ! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
-    inquire(self % unit, pos=self % ipos0) 
+    inquire(self % unit, pos=self % ipos0)
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
     read(self % unit, end=98, err=99) h(:,2)
     read(self % unit, end=98, err=99) ht(:,2)
     if (self % amp < 3) then
         read(self % unit, end=98, err=99) c(:,2)
         read(self % unit, end=98, err=99) ct(:,2)
-    else
-        c(:,2) = czero_c
-        ct(:,2) = czero_c
     end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
