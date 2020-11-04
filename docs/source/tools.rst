@@ -90,7 +90,7 @@ is given by this code snippet.
 This method applies the :mod:`shp=2` shape class. The module :file:`swd_tools.py` in the raschii
 distribution demonstrates how to create SWD files directly from Python.
 
-Raschii also has a graphical `online demo <https://raschii.readthedocs.io/en/latest/raschii_dart.html>`_.
+Raschii also has an online graphical `wave calculator <https://raschii.readthedocs.io/en/latest/raschii_dart.html>`_.
 
 ============
 Stokes Waves

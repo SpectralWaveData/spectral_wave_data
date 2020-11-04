@@ -90,7 +90,7 @@ shutil.copytree(os.path.join(dir_1, 'tools'), os.path.join(dir_2, 'tools'))
 sys.path.insert(0, os.path.abspath('autodoc_mocks'))  # for autodoc to find spectral_wave_data
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['my_templates']
+#templates_path = ['my_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:

@@ -151,7 +151,7 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_3_impl_1) :: self  ! Object to construct
 !
-integer :: i, ios
+integer :: i, ios, err_id
 
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, n, nh, order, nid, nsteps, nstrip, isf, nsf
@@ -185,10 +185,10 @@ self % x0 = x0
 self % y0 = y0
 self % file = file
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 

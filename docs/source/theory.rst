@@ -179,9 +179,9 @@ Applying a shape class as defined above, the kinematics at time :math:`t`
 is well defined given the set of associated
 temporal amplitudes :math:`c_j(t)` and :math:`h_j(t)`.
 The :ref:`wave generators<wave-generator>`  are required by this API to provide discrete
-values of these functions at
-equidistant time intervals. In order to obtain consistent smooth kinematics
-in :ref:`application programs<application-program>`,
+values of these functions at equidistant time intervals via the :doc:`SWD file <swd_format>`.
+In order to obtain consistent smooth kinematics
+in :ref:`application programs<application-program>` for all :math:`t`,
 it is also required that :math:`\frac{dc_j(t)}{dt}` and :math:`\frac{dh_j(t)}{dt}`
 are provided by the  :ref:`wave generators<wave-generator>` at the same time intervals. In order to minimize
 errors in :ref:`application programs<application-program>` the latter functions should be provided directly from the
@@ -197,7 +197,7 @@ schemes:
    \sum_{j=1}^n \mathcal{Re} \Bigl\{\frac{dh_j(t)}{dt}\, \xi_j(x, y)\Bigr\} = f_k(\phi, \nabla\phi, \ldots)
 
 where the functions :math:`f_d()` and :math:`f_k()` follows from the applied dynamic and kinematic free surface
-conditions and are calculated using *spatial* gradients only.
+conditions and are calculated using *spatial* analytical gradients only.
 
 .. note::
 

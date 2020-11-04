@@ -169,11 +169,11 @@ close(lu)
 
 ! Before we decode the SWD file we check if
 ! it applies the correct binary convention...
-call swd_validate_binary_convention(file_swd, err_msg(2))
+call swd_validate_binary_convention(file_swd, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(file_swd)
     allocate(spectral_wave_data_shape_1_impl_1 :: swd)  ! Empty object to store errors
-    call swd % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call swd % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -319,18 +319,31 @@ contains
         err_msg(2) = 'Not able to open SWD file.'
         return
     end if
-    read(luswd) c_magic
-    read(luswd) c_fmt
+    read(luswd, end=98, err=99) c_magic
+    read(luswd, end=98, err=99) c_fmt
     if (c_fmt /= int(100, c_int)) then
         err_id = 1003
         write(err_msg(2),'(a,i0)') 'Unexpected version number of SWD-file. fmt = ', c_fmt
         return
     end if
-    read(luswd) c_shp
-    read(luswd) c_amp
+    read(luswd, end=98, err=99) c_shp
+    read(luswd, end=98, err=99) c_amp
     shp = c_shp
     amp = c_amp
-    close(luswd)        
+    close(luswd)
+    return
+    !
+    98 continue
+    close(luswd)
+    err_id = 1003
+    err_msg(2) = 'End of file when reading header data from SWD file.'
+    return
+    !
+    99 continue
+    close(luswd)
+    err_id = 1003
+    err_msg(2) = 'Error when reading header data from SWD file.'
+    return
     end subroutine swd_sniff_shp_amp
     
     logical function swd_sniff_equal_nx_ny() result(res)
@@ -351,34 +364,47 @@ contains
         err_msg(2) = 'Not able to open SWD file.'
         return
     end if
-    read(luswd) c_magic
-    read(luswd) c_fmt
+    read(luswd, end=98, err=99) c_magic
+    read(luswd, end=98, err=99) c_fmt
     if (c_fmt /= int(100, c_int)) then
         err_id = 1003
         write(err_msg(2),'(a,i0)') 'Unexpected version number of SWD-file. fmt = ', c_fmt
         return
     end if
-    read(luswd) c_shp
+    read(luswd, end=98, err=99) c_shp
     if (c_shp == 4 .or. c_shp == 5) then
-        read(luswd) c_amp
-        read(luswd) c_prog
-        read(luswd) c_date 
-        read(luswd) c_nid
+        read(luswd, end=98, err=99) c_amp
+        read(luswd, end=98, err=99) c_prog
+        read(luswd, end=98, err=99) c_date
+        read(luswd, end=98, err=99) c_nid
         allocate(character(len=int(c_nid)) :: cid)
-        read(luswd) cid
-        read(luswd) c_grav
-        read(luswd) c_lscale
-        read(luswd) c_nstrip
-        read(luswd) c_nsteps
-        read(luswd) c_dt
-        read(luswd) c_order
-        read(luswd) c_nx
-        read(luswd) c_ny
-        read(luswd) c_dkx
-        read(luswd) c_dky
+        read(luswd, end=98, err=99) cid
+        read(luswd, end=98, err=99) c_grav
+        read(luswd, end=98, err=99) c_lscale
+        read(luswd, end=98, err=99) c_nstrip
+        read(luswd, end=98, err=99) c_nsteps
+        read(luswd, end=98, err=99) c_dt
+        read(luswd, end=98, err=99) c_order
+        read(luswd, end=98, err=99) c_nx
+        read(luswd, end=98, err=99) c_ny
+        read(luswd, end=98, err=99) c_dkx
+        read(luswd, end=98, err=99) c_dky
         res = (c_nx == c_ny) .and. (abs(c_dkx - c_dky) < epsilon(c_dkx))
     end if
     close(luswd)        
+    return
+    !
+    98 continue
+    close(luswd)
+    err_id = 1003
+    err_msg(2) = 'End of file when reading header data from SWD file.'
+    return
+    !
+    99 continue
+    close(luswd)
+    err_id = 1003
+    err_msg(2) = 'Error when reading header data from SWD file.'
+    return
     end function swd_sniff_equal_nx_ny
 
 end subroutine spectral_wave_data_allocate
