@@ -432,7 +432,8 @@ end function constructor
 !==============================================================================
 
 subroutine update_time(self, time)
-class(spectral_wave_data_shape_4_impl_1), intent(inout) :: self  ! Update data in memory (if needed)
+! Update data in memory (if needed)
+class(spectral_wave_data_shape_4_impl_1), intent(inout) :: self  
 real(knd), intent(in) :: time  ! Current time in simulation program
 !
 integer(int64) :: ipos
@@ -1649,7 +1650,7 @@ real(knd), allocatable :: elev(:, :)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_1::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumx, 0:self % nsumy), nx_fft_in)
+elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx), nx_fft_in, ny_fft_in)
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]

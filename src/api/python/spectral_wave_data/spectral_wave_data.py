@@ -827,11 +827,11 @@ class SpectralWaveData(object):
         ny_out = CFI_obj.contents.dim[1].extent
 
         data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
-        res = np.squeeze(np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out)).T).copy()
+        res = np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out)).copy()
 
         swdlib.swd_api_fft_deallocate(CFI_obj)
         
-        return res
+        return res.T
 
     def x_fft(self, nx_fft=-1):
         """Returns the x-grid corresponding to the FFT-based routines *_fft

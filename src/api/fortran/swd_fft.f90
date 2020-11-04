@@ -151,7 +151,7 @@ if (self % error % raised()) then
     return
 end if
 
-f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy, nx_fft, ny_fft)
+f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy + 1, nx_fft, ny_fft)
 
 end function fft_field_2D
 
@@ -173,7 +173,7 @@ end function swd_to_fft_coeffs_1D
 function swd_to_fft_coeffs_2D(self, swd_coeffs) result(fft_coeffs)
 class(swd_fft), intent(in) :: self  ! Actual class
 complex(wp), intent(in) :: swd_coeffs(2, 0:self % nsumy, 0:self % nsumx)
-complex(wp), dimension(self % nsumx + 1, 2*self % nsumy) :: fft_coeffs
+complex(wp), dimension(self % nsumx + 1, 2*self % nsumy + 1) :: fft_coeffs
 integer :: ix, iy
 real(wp) :: sc
 
@@ -185,17 +185,14 @@ do ix = 0, self % nsumx
     if (ix == self % nsumx) sc = 1.0_wp ! special case for nyquist wavenumber
 
     ! 0-freq and all positive wavenumbers
-    do iy = 1, self % nsumy
+    do iy = 1, self % nsumy + 1
         fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(1, iy - 1, ix))
     end do
 
-    ! the largest negative wavenumber (nyquist)
-    fft_coeffs(ix + 1, self % nsumy + 1) = sc*(conjg(swd_coeffs(1, self % nsumy, ix) + swd_coeffs(2, self % nsumy, ix)))
-
     ! all other negative wavenumbers up to -1
-    do iy = self % nsumy + 2, 2*self % nsumy
-        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(2, 2*self % nsumy + 1 - iy, ix))
-    end do   
+    do iy = self % nsumy + 2, 2*self % nsumy + 1
+        fft_coeffs(ix + 1, iy) = sc*conjg(swd_coeffs(2, 2*self % nsumy + 2 - iy, ix))
+    end do
 end do
 
 end function swd_to_fft_coeffs_2D
@@ -253,11 +250,11 @@ if (self % nsumy == 1) then  ! 1D
     end if
     ny_fft = 1
 else if (present(ny_fft_in)) then
-    if (ny_fft_in < 0) then
+    if (ny_fft_in <= -1) then
         ny_fft = -2*ny_fft_in*self % nsumy
-    elseif (ny_fft_in >= 2*self % nsumy) then
+    elseif (ny_fft_in >= 2*self % nsumy) then ! arbitrary grid size
         ny_fft = ny_fft_in
-    else
+    else ! error for "invalid" downsampling (use nsumx/nsumy instead)
         write(err_msg(1),'(a)') "Invalid grid size ny_fft."
         write(err_msg(2),'(a)') "ny_fft must either be a negative integer, or a positive"
         write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 

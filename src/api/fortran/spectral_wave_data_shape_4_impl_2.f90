@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -295,6 +296,9 @@ else
 end if
 ! Due to symmetry nsumy is ignored
 
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsum, self % nsum, self % dk, self % dk)
+
 if (present(ipol)) then
     call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
 else
@@ -308,7 +312,6 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1004, err_msg(1:3))
     return
 end if
-
 
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
@@ -1912,9 +1915,12 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_4_impl_2), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+elev = 0.0_wp
+err_msg = ["not implemented"]
+call self % error % set_id_msg(err_proc, 1004, err_msg)                          
 
 end function elev_fft
 
