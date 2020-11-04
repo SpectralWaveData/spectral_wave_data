@@ -22,7 +22,8 @@ assert sys.version_info >= (2, 7, 11)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if platform.system() == 'Windows':
-    # The Intel Redistributable Libraries are expected to be statical linked to the dll. Hence we skip this:
+    # The Intel Redistributable Libraries are expected to be statical linked to the dll.
+    # Consequently, we skip this:
     # intel_redist_path = os.getenv('INTEL_DEV_REDIST')
     # if intel_redist_path is None:
     #     msg = """

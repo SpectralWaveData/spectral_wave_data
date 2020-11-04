@@ -91,7 +91,7 @@ Meta data from an actual SWD file can be extracted using the console script swd_
     > swd_meta my.swd
     version: 1.0.0
     prog:    raschii-1.0.4
-    date:    2020:09:22 19:57:55
+    date:    2020:10:22 18:37:55
     fmt:     100
     shp:     2
     amp:     1
@@ -114,18 +114,15 @@ Output and further examples are explained in the
 
 ## Installation
 
-To install spectral_wave_data is usually obtained executing::
+To install spectral_wave_data from PyPI execute::
 
     pip install spectral_wave_data
     
 in your actual Python environment on Linux or Windows-10. 
 Python 2.7, 3.5 and above are supported.
 
-On windows you may have to download and install the
-[Intel redistributable library for Fortran 2020](https://software.intel.com/en-us/articles/redistributable-libraries-for-intel-c-and-fortran-2020-compilers-for-windows)
-using default options, unless you have a recent Intel Fortran compiler installed.
-
-On Linux spectral_wave_data is compiled on the manylinux2014 platform to confirm with most modern Linux systems.
+On Linux spectral_wave_data is compiled on the manylinux2014 platform to confirm
+with most modern Linux systems.
 
 For other systems you need to build the package from source.
 To compile this Python package from source you need access to a 

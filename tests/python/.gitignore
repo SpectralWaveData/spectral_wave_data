@@ -1,4 +1,4 @@
 report.html
 assets
-.coverage
+.coverage*
 .pytest_cache
