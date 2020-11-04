@@ -143,13 +143,15 @@ integer :: i, ix, iy, ios, n_loops
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, nx, ny, order, nid, nsteps, nstrip
 real(c_float) :: dkx, dky, dt, grav, lscale, magic
-complex(wp) :: fval, dfval
+
 character(kind=c_char, len=:), allocatable :: cid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
-complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::constructor'
 character(len=250) :: err_msg(5)
+complex(wp) :: fval, dfval
+real(wp) :: dt_tpol
+complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
 !
@@ -308,11 +310,10 @@ if (i /= 0) then
     return
 end if
 
-
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = self % dt * (self % nsteps - 1) - self % t0
-if (self % tmax <= self % dt) then
+if (self % tmax < self % dt) then
     write(err_msg(1),'(a,a)') 'Input file: ', trim(self % file)
     write(err_msg(2),'(a)') "Constructor parameter t0 is too large."
     write(err_msg(3),'(a,f0.4)') 't0 = ', self % t0
@@ -344,61 +345,34 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1005, err_msg(1:3))
     return
 end if
-    
-! The first three time steps are put into memory.
+
+! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
+    ! request file position where the temporal functions start
     inquire(self % unit, pos=self % ipos0) 
-    do i = 2, 4
-        read(self % unit, end=98, err=99) h(:,:,i)
-        read(self % unit, end=98, err=99) ht(:,:,i)
-        if (self % amp < 3) then
-            read(self % unit, end=98, err=99) c(:,:,i)
-            read(self % unit, end=98, err=99) ct(:,:,i)
-        else
-            c(:,:,i) = czero_c
-            ct(:,:,i) = czero_c
-        end if
-    end do
+    read(self % unit, end=98, err=99) h(:,:,2)
+    read(self % unit, end=98, err=99) ht(:,:,2)
+    if (self % amp < 3) then
+        read(self % unit, end=98, err=99) c(:,:,2)
+        read(self % unit, end=98, err=99) ct(:,:,2)
+    else
+        c(:,:,2) = czero_c
+        ct(:,:,2) = czero_c
+    end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
     ! Storage fortran units per complex (c_float based)
     if (self % amp == 3) then
-        self % size_complex = (ipos2 - ipos1) / (3 * 2 * (self%n + 1) * ( 2 * self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (2 * (self%n + 1) * ( 2 * self%n + 1))
     else
-        self % size_complex = (ipos2 - ipos1) / (3 * 4 * (self%n + 1) * ( 2 * self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (4 * (self%n + 1) * ( 2 * self%n + 1))
     end if
-    self % size_step = (ipos2 - ipos1) / 3  ! three time steps
-    ! We apply padding for storing data at t=-dt
-    do ix = 0, self % nsum
-        do iy = -self % nsum, self % nsum
-            ! Potential and d/dt of potential
-            call self % tpol % pad_left(              &
-                        cmplx(c(iy,ix,2), kind=wp),   &
-                        cmplx(c(iy,ix,3), kind=wp),   &
-                        cmplx(c(iy,ix,4), kind=wp),   &
-                        cmplx(ct(iy,ix,2), kind=wp),  &
-                        cmplx(ct(iy,ix,3), kind=wp),  &
-                        cmplx(ct(iy,ix,4), kind=wp),  &
-                        fval, dfval)
-            c(iy,ix,1) = fval
-            ct(iy,ix,1) = dfval
-            ! Wave height and d/dt of wave height
-            call self % tpol % pad_left(              &
-                        cmplx(h(iy,ix,2), kind=wp),   &
-                        cmplx(h(iy,ix,3), kind=wp),   &
-                        cmplx(h(iy,ix,4), kind=wp),   &
-                        cmplx(ht(iy,ix,2), kind=wp),  &
-                        cmplx(ht(iy,ix,3), kind=wp),  &
-                        cmplx(ht(iy,ix,4), kind=wp),  &
-                        fval, dfval)
-            h(iy,ix,1) = fval
-            ht(iy,ix,1) = dfval
-        end do
-    end do
-end associate
-self % istp = 3  ! The most recent physical step in memory
+    self % size_step = (ipos2 - ipos1)
 
-self % icur = 1  ! The column to store next data. Cycles with repetitons from 1 to 4
+end associate
+self % istp = 1  ! The most recent physical step in memory
+
+self % icur = 3  ! The column to store next data. Cycles with repetitons from 1 to 4
 ! self % ipt(1:4, icur) represent i-1, i, i+1 and i+2 in the interpolation scheme
 self % ipt(:,1) = [1,2,3,4]
 self % ipt(:,2) = [2,3,4,1]
@@ -412,7 +386,7 @@ err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
 return
-
+!
 99 continue
 err_msg(1) = 'Error when reading data from file:'
 err_msg(2) = self % file
@@ -467,11 +441,17 @@ end if
 ! We need to store the 4 time steps: istp_min, istp_min+1, ..., istp_max in memory
 ! tswd=0.0 corresponds to time step 1. The last step in file is nsteps.
 ! Minimum time step in memory: =0 indicates need of padding below tswd = 0.0
-istp_min = int((self % tswd - teps) / self % dt)  
-! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
-istp_max = istp_min + 3
-!
-delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0]
+if (self % nsteps == 1) then
+    istp_min = 1
+    delta = 0.0_wp
+    istp_max = 1
+    self % icur = 1
+else
+    istp_min = int((self % tswd - teps) / self % dt)
+    delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0] 
+    ! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
+    istp_max = istp_min + 3
+end if  
 
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
           ht => self % ht_win, ic => self % icur, ip => self % ipt)
@@ -561,7 +541,7 @@ associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
         end if
     end do
 
-    if (imove < 0 .and. istp_min == 0) then
+    if (istp_min == 0) then
         ! Padding in first column because tswd < dt_swd. 
         do ix = 0, self % nsum
             do iy = -self % nsum, self % nsum
