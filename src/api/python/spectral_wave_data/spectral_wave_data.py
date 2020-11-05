@@ -800,6 +800,7 @@ class SpectralWaveData(object):
         """
         if self._alive is True:
             swdlib.swd_api_close(self.obj)
+            del self.obj
             self._alive = False
 
     def elev_fft(self, nx_fft=-1, ny_fft=-1):
