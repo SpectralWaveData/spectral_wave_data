@@ -16,7 +16,8 @@ from __future__ import unicode_literals
 import os
 import sys
 import platform
-from ctypes import c_bool, c_double, c_int, c_char_p, c_void_p, Structure, CDLL
+from ctypes import c_bool, c_double, c_int, c_char_p, c_void_p, Structure, CDLL, POINTER
+from .ISO_Fortran_binding import CFI_cdesc_t_1D, CFI_cdesc_t_2D
 
 assert sys.version_info >= (2, 7, 11)
 
@@ -52,7 +53,6 @@ BEGIN interface definition to the C-implementation
 NOTE: STRANGE ERRORS may occur if this interface does not comply with the original C source code.
 """
 
-
 class vecswd(Structure):
      _fields_ = [("x", c_double), ("y", c_double), ("z", c_double)]
 
@@ -61,10 +61,8 @@ class vecphi2ndswd(Structure):
     _fields_ = [("xx", c_double), ("xy", c_double), ("xz", c_double),
                 ("yy", c_double), ("yz", c_double), ("zz", c_double)]
 
-
 class vecelev2ndswd(Structure):
     _fields_ = [("xx", c_double), ("xy", c_double), ("yy", c_double)]
-
 
 swdlib.swd_api_allocate.argtypes = [c_char_p, c_double, c_double,
                                     c_double, c_double, c_double,
@@ -149,6 +147,15 @@ swdlib.swd_api_error_clear.restype = c_void_p
 
 swdlib.swd_api_close.argtypes = [c_void_p]
 swdlib.swd_api_close.restype = c_void_p
+
+swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_elev_fft.restype = POINTER(CFI_cdesc_t_2D)
+
+swdlib.swd_api_x_fft.argtypes = [c_void_p, c_int]
+swdlib.swd_api_x_fft.restype = POINTER(CFI_cdesc_t_1D)
+
+swdlib.swd_api_y_fft.argtypes = [c_void_p, c_int]
+swdlib.swd_api_y_fft.restype = POINTER(CFI_cdesc_t_1D)
 
 """
 ================================================================================================

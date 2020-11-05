@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -80,6 +81,7 @@ contains
     procedure :: get_logical        ! Extract a specified logical parameter
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
+    procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
 end type spectral_wave_data_shape_5_impl_1
 
 interface spectral_wave_data_shape_5_impl_1
@@ -150,7 +152,6 @@ integer :: i, ix, iy, ios, err_id
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, nx, ny, order, nid, nsteps, nstrip
 real(c_float) :: dkx, dky, dt, grav, lscale, d, magic
-
 character(kind=c_char, len=:), allocatable :: cid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
@@ -311,6 +312,9 @@ if (present(nsumy)) then
 else
     self % nsumy = ny
 end if
+
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, self % nsumy, self % dkx, self % dky)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -1736,6 +1740,26 @@ case default
 end select
 !
 end function get_chr
+
+!==============================================================================
+
+function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
+
+elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx), nx_fft_in, ny_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
+
+end function elev_fft
 
 !==============================================================================
 

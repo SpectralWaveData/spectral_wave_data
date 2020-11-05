@@ -64,6 +64,9 @@ public :: error_get_id  ! Return error id
 public :: error_get_msg ! Return error message
 public :: error_clear   ! Clear the error flag
 public :: close         ! Destructor
+public :: elev_fft      ! Surface elevation FFT
+public :: x_fft         ! x-grid for FFT-based evaluation
+public :: y_fft         ! y-grid for FFT-based evaluation
 !------------------------------------------------------------------------------
 !
 !                E N D    P U B L I C    Q U A N T I T I E S
@@ -697,6 +700,61 @@ do i = 1, n
 end do
 !
 end function str_c2f
+
+!==============================================================================
+
+subroutine elev_fft(this, nx_fft, ny_fft, elev_arr) bind(c, name='swd_api_elev_fft_')
+type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
+integer(c_int), value           :: nx_fft, ny_fft       ! Dimensions of output-grid
+real(c_wp), allocatable, intent(out) :: elev_arr(:, :)
+type(spectral_wave_data_c), pointer :: swd
+
+integer :: nx_fft_f, ny_fft_f
+        
+nx_fft_f = nx_fft
+ny_fft_f = ny_fft
+call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
+
+allocate(elev_arr(nx_fft, ny_fft))
+elev_arr = swd % obj % elev_fft(nx_fft_f, ny_fft_f)
+
+end subroutine elev_fft
+
+!==============================================================================
+
+subroutine x_fft(this, nx_fft, x_arr) bind(c, name='swd_api_x_fft_')
+type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
+integer(c_int), value           :: nx_fft      ! Dimensions of output-grid
+real(c_wp), allocatable, intent(out) :: x_arr(:)
+type(spectral_wave_data_c), pointer :: swd
+
+integer :: nx_fft_f
+        
+nx_fft_f = nx_fft
+call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
+
+allocate(x_arr(nx_fft))
+x_arr = swd % obj % x_fft(nx_fft_f)
+
+end subroutine x_fft
+
+!==============================================================================
+
+subroutine y_fft(this, ny_fft, y_arr) bind(c, name='swd_api_y_fft_')
+type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
+integer(c_int), value           :: ny_fft      ! Dimensions of output-grid
+real(c_wp), allocatable, intent(out) :: y_arr(:)
+type(spectral_wave_data_c), pointer :: swd
+
+integer :: ny_fft_f
+        
+ny_fft_f = ny_fft
+call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
+
+allocate(y_arr(ny_fft))
+y_arr = swd % obj % y_fft(ny_fft_f)
+
+end subroutine y_fft
 
 !==============================================================================
 

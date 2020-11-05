@@ -5,6 +5,7 @@ use, intrinsic :: iso_fortran_env, only: int64
 use kind_values, only: knd => kind_swd_interface, wp => kind_swd_internal
 
 use spectral_wave_data_error, only: swd_error
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -64,6 +65,7 @@ type, abstract :: spectral_wave_data
     logical            :: dc_bias ! True: apply zero frequency amplitudes from SWD file. 
                                   ! False: Suppress contribution from zero frequency amplitudes (Default)
     type(swd_error)    :: error   ! Abort free error handler
+    type(swd_fft)      :: fft     ! FFT-based evaluations
 contains
     procedure(update_time), deferred :: update_time       ! Obtain spectral data for current time
     procedure(phi),         deferred :: phi               ! Calculate potential at location for current time
@@ -88,6 +90,9 @@ contains
     procedure(get_real),    deferred :: get_real          ! Extract a specified float parameter
     procedure(get_chr),     deferred :: get_chr           ! Extract a specified char parameter
     procedure(close),       deferred :: close             ! Manual destructor
+    procedure(elev_fft),    deferred :: elev_fft          ! Surface elevation on a regular grid using FFT 
+    procedure :: x_fft                                    ! x-vector corresponding to output from FFT routines
+    procedure :: y_fft                                    ! y-vector corresponding to output from FFT routines
     procedure :: error_raised                             ! Return .true. if error has been signaled
     procedure :: error_id                                 ! Return error id
     procedure :: error_msg                                ! Return error message
@@ -258,6 +263,13 @@ abstract interface
         class(spectral_wave_data) :: self  ! Object to destruct
     end subroutine close
 
+    function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+        import
+        class(spectral_wave_data), intent(inout) :: self ! Actual class
+        integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+        real(knd), allocatable :: elev(:, :)
+    end function elev_fft
+
 end interface
 
 contains
@@ -300,6 +312,46 @@ class(spectral_wave_data), intent(inout) :: self ! Error handler
 call self % error % clear()
 !
 end subroutine error_clear
+
+!==============================================================================
+
+function x_fft(self, nx_fft_in)
+class(spectral_wave_data), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: nx_fft_in
+real(knd), allocatable :: x_fft(:)
+character(len=*), parameter :: err_proc = 'spectral_wave_data::x_fft'
+character(len=:), allocatable :: err_msg(:)
+
+x_fft = self % fft % x_fft(nx_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
+
+end function x_fft
+
+!==============================================================================
+
+function y_fft(self, ny_fft_in)
+class(spectral_wave_data), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: ny_fft_in
+real(knd), allocatable :: y_fft(:)
+character(len=*), parameter :: err_proc = 'spectral_wave_data::y_fft'
+character(len=:), allocatable :: err_msg(:)
+
+y_fft = self % fft % y_fft(ny_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
+
+end function y_fft
 
 !==============================================================================
   

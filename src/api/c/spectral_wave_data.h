@@ -16,7 +16,9 @@ extern "C" {
 
 #ifndef __cplusplus
 #include <stdbool.h>
-#endif    
+#endif
+
+#include "ISO_Fortran_binding.h"
 
 // Floating point model for interfacing with spectral_wave_data
 #ifdef SWD_API_FLOAT
@@ -171,6 +173,24 @@ void swd_api_convergence(void *swd, real_swd x, real_swd y, real_swd z, const ch
 // The name of the new SWD file is defined by file_swd_new
 // Eventual error signals (ref constructor): 1001, 1003
 void swd_api_strip(void *swd, real_swd tmin, real_swd tmax, const char *file_swd_new);
+
+// wave elevation FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_elev_fft_(void *swd, int nx_fft, int ny_fft, CFI_cdesc_t *desc_elev_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
+
+// x-grid FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_x_fft_(void *swd, int nx_fft, CFI_cdesc_t *desc_x_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft); // function returning a CFI_cdesc_t object
+
+// y-grid FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_y_fft_(void *swd, int ny_fft, CFI_cdesc_t *desc_y_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_y_fft(void *swd, int ny_fft); // function returning a CFI_cdesc_t object
+
+// deallocating a CFI_cdesc_t object
+void swd_api_fft_deallocate(CFI_cdesc_t *desc_arr);
 
 // ===================================================================
 //  Provide parameters from the swd-file:

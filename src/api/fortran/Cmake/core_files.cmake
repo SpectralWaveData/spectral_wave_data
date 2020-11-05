@@ -18,7 +18,9 @@ set(SRC_CORE
   ${DIR_SRC_API_F}/swd_write_shape_3.f90
   ${DIR_SRC_API_F}/swd_write_shape_4_or_5.f90
   ${DIR_SRC_API_F}/swd_write_shape_6.f90
-  ${DIR_SRC_API_F}/swd_version.f90)
+  ${DIR_SRC_API_F}/swd_version.f90
+  ${DIR_SRC_API_F}/swd_fft.f90
+  ${DIR_SRC_API_F}/swd_fft_fftw3.f90)
 
 # Bundle the Intel compiler libraries when compiling shared libraries
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")

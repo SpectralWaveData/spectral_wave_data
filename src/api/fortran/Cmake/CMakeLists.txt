@@ -24,4 +24,4 @@ set(SRC_APP
 
 add_library(${LIB} ${LIBTYPE} ${SRC_SWDLIB})
 add_executable(${PROG} ${SRC_APP})
-target_link_libraries(${PROG} PRIVATE ${LIB}) 
+target_link_libraries(${PROG} PRIVATE ${LIB} fftw3) 

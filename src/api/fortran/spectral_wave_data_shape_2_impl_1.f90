@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -78,6 +79,7 @@ contains
     procedure :: get_logical        ! Extract a specified logical parameter
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
+    procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
 end type spectral_wave_data_shape_2_impl_1
 
 interface spectral_wave_data_shape_2_impl_1
@@ -281,6 +283,9 @@ if (present(nsumx)) then
 else
     self % nsumx = n
 end if
+
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, 1, self % dk, 0.0_wp)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -1521,6 +1526,26 @@ case default
 end select
 !
 end function get_chr
+
+!==============================================================================
+
+function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
+
+elev = self % fft % fft_field_1D(self % h_cur(0:self % nsumx), nx_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
+
+end function elev_fft
 
 !==============================================================================
 

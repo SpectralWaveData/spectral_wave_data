@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -76,6 +77,7 @@ contains
     procedure :: get_logical        ! Extract a specified logical parameter
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
+    procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
 end type spectral_wave_data_shape_4_impl_2
 
 interface spectral_wave_data_shape_4_impl_2
@@ -143,7 +145,6 @@ integer :: i, ix, iy, ios, n_loops, err_id
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, nx, ny, order, nid, nsteps, nstrip
 real(c_float) :: dkx, dky, dt, grav, lscale, magic
-
 character(kind=c_char, len=:), allocatable :: cid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
@@ -295,6 +296,9 @@ else
     self % nsum = self % n
 end if
 ! Due to symmetry nsumy is ignored
+
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsum, self % nsum, self % dk, self % dk)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -1894,6 +1898,21 @@ case default
 end select
 !
 end function get_chr
+
+!==============================================================================
+
+function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
+class(spectral_wave_data_shape_4_impl_2), intent(inout) :: self ! Actual class
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::elev_fft'
+character(len=:), allocatable :: err_msg(:)
+
+elev = 0.0_wp
+err_msg = ["not implemented"]
+call self % error % set_id_msg(err_proc, 1004, err_msg)                          
+
+end function elev_fft
 
 !==============================================================================
 
