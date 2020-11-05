@@ -22,6 +22,11 @@ set(SRC_CORE
   ${DIR_SRC_API_F}/swd_fft.f90
   ${DIR_SRC_API_F}/swd_fft_fftw3.f90)
 
+# Find FFTW libraries
+find_path (FFTW_INCLUDE_DIRS fftw3.f03)
+message(STATUS "FFTW_INCLUDE_DIRS: ${FFTW_INCLUDE_DIRS}")
+INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIRS})
+
 # Bundle the Intel compiler libraries when compiling shared libraries
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     if (UNIX)
