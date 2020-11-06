@@ -98,6 +98,8 @@ class(spectral_wave_data_shape_2_impl_1) :: self  ! Object to destruct
 !
 logical opened
 !
+call self % fft % close()
+!
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
 if (allocated(self % cid)) deallocate(self % cid)
@@ -285,7 +287,7 @@ else
 end if
 
 ! make object for FFT-based evaluations
-self % fft = swd_fft(self % nsumx, 1, self % dk, 0.0_wp)
+self % fft = swd_fft(self % nsumx, 0, self % dk, 0.0_wp, self % d)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
