@@ -1430,9 +1430,14 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_6_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_6_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+allocate(elev(1,1))
+elev = huge(elev)
+
+err_msg = ["not implemented"]
+call self % error % set_id_msg(err_proc, 1004, err_msg)
 
 end function elev_fft
 
