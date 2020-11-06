@@ -31,7 +31,9 @@ type :: swd_fft
     private
     real(wp) :: dkx, dky
     real(wp) :: sizex, sizey
+    real(wp) :: d
     integer :: nsumx, nsumy
+    real(wp), allocatable :: kx(:,:), ky(:,:), k(:,:), tanhkh(:,:)
     type(swd_error), public :: error
 contains
     private
@@ -42,6 +44,7 @@ contains
     procedure, public :: y_fft
     procedure, public :: swd_to_fft_coeffs_1D
     procedure, public :: swd_to_fft_coeffs_2D
+    procedure, public :: close
     procedure :: nx_fft
     procedure :: ny_fft
 
@@ -57,19 +60,23 @@ contains
 
 !==============================================================================
 
-function constructor(nsumx, nsumy, dkx, dky) result(self)
+function constructor(nsumx, nsumy, dkx, dky, d) result(self)
 integer, intent(in) :: nsumx, nsumy
 real(wp), intent(in) :: dkx, dky
+real(wp), intent(in) :: d ! water depth
 
 type(swd_fft) :: self
+
+integer :: i
 
 self % nsumx = nsumx
 self % dkx = dkx
 self % sizex = 2.0_wp*pi/dkx
+self % d = self % d
 
 ! it is assumed nsumy <= 1 means long-crested waves
 if (nsumy <= 1) then
-    self % nsumy = 1
+    self % nsumy = 0
     self % dky = 0.0_wp
     self % sizey = 0.0_wp
 else
@@ -79,6 +86,38 @@ else
 end if
 
 call self % error % clear()
+
+! build matrices for derivatives, etc
+allocate(self % kx(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % ky(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % k(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % tanhkh(self % nsumx + 1, 2*self % nsumy + 1))
+
+! kx-matrix
+do i = 1, self % nsumx + 1
+    self % kx(i, :) = self%dkx*(i - 1)
+end do
+
+! ky-matrix and k-matrix
+if (self % nsumy > 1) then
+    do i = 1, self % nsumy + 1
+        self % ky(:, i) = self%dky*(i - 1)
+    end do
+    do i = self % nsumy + 2, 2*self % nsumy + 1
+        self % ky(:, i) = self%dky*(i - 2*self % nsumy - 2)
+    end do
+    self % k = sqrt(self % kx**2 + self % ky**2)
+else
+    self % ky = 0.0_wp
+    self % k = self % kx
+end if
+
+! tanh(kh)-matrix
+if (self % d > 0.0_wp) then
+    self % tanhkh = tanh(self % k*self % d)
+else
+    self % tanhkh = 1.0_wp
+end if 
 
 end function constructor
 
@@ -240,7 +279,7 @@ integer :: ny_fft
 character(len=*), parameter :: err_proc = 'swd_fft::ny_fft'
 character(len=250) :: err_msg(5)
 
-if (self % nsumy == 1) then  ! 1D
+if (self % nsumy == 0) then  ! 1D
     if (present(ny_fft_in)) then
         if (abs(ny_fft_in) /= 1) then
             write(err_msg(1),'(a)') "Invalid grid size ny_fft."
@@ -307,6 +346,18 @@ end do
 
 end function impl2_to_impl1
 
-!==============================================================================
+!=============================================================================
+
+subroutine close(self)
+class(swd_fft) :: self  ! Object to destruct
+!
+if (allocated(self % kx)) deallocate(self % kx)
+if (allocated(self % ky)) deallocate(self % ky)
+if (allocated(self % k)) deallocate(self % k)
+if (allocated(self % tanhkh)) deallocate(self % tanhkh)
+!
+end subroutine  close
+
+!=============================================================================
 
 end module swd_fft_def
