@@ -37,6 +37,7 @@ contains
     private
     procedure, public :: fft_field_1D
     procedure, public :: fft_field_2D
+    procedure, public :: impl2_to_impl1
     procedure, public :: x_fft
     procedure, public :: y_fft
     procedure :: nx_fft
@@ -269,6 +270,41 @@ else
 end if
 
 end function ny_fft
+
+!==============================================================================
+
+function impl2_to_impl1(self, impl2_coeffs) result(impl1_coeffs)
+class(swd_fft), intent(in) :: self  ! Actual class
+complex(wp), intent(in) :: impl2_coeffs(4, (self%nsumx + 1)*(self%nsumx + 2)/2)
+complex(wp) :: impl1_coeffs(2, 0:self % nsumx, 0:self % nsumx)
+
+integer ii, ix, iy
+
+ii = 0
+do ix = 0, self % nsumx
+    iy = 0
+    ii = ii + 1
+    if (ix == 0) then
+        impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+        cycle
+    end if
+    impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+    impl1_coeffs(1,ix,iy) = impl2_coeffs(3,ii)
+    impl1_coeffs(2,ix,iy) = impl2_coeffs(4,ii)
+    do iy = 1, ix - 1
+        ii = ii + 1
+        impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+        impl1_coeffs(2,iy,ix) = impl2_coeffs(2,ii)
+        impl1_coeffs(1,ix,iy) = impl2_coeffs(3,ii)
+        impl1_coeffs(2,ix,iy) = impl2_coeffs(4,ii)
+    end do
+    iy = ix
+    ii = ii + 1
+    impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+    impl1_coeffs(2,iy,ix) = impl2_coeffs(2,ii)
+end do
+
+end function impl2_to_impl1
 
 !==============================================================================
 

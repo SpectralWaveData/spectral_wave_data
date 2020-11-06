@@ -1908,9 +1908,14 @@ real(knd), allocatable :: elev(:, :)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = 0.0_wp
-err_msg = ["not implemented"]
-call self % error % set_id_msg(err_proc, 1004, err_msg)                          
+elev = self % fft % fft_field_2D(self % fft % impl2_to_impl1(self % h_cur), nx_fft_in, ny_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
 
 end function elev_fft
 

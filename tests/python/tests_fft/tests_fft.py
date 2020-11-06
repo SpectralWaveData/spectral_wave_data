@@ -8,9 +8,7 @@ import os
 case_params = []
 test_ids = []
 
-# shp_imp = [(1, 1), (2, 1), (4, 1), (4, 2), (5, 1)]
-shp_imp = [(1, 1), (2, 1), (4, 1), (5, 1)]
-
+shp_imp = [(1, 1), (2, 1), (4, 1), (4, 2), (5, 1)]
 
 z_ind = ['elev'] # functions independent of z
 
