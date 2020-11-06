@@ -40,10 +40,11 @@ contains
     procedure, public :: impl2_to_impl1
     procedure, public :: x_fft
     procedure, public :: y_fft
+    procedure, public :: swd_to_fft_coeffs_1D
+    procedure, public :: swd_to_fft_coeffs_2D
     procedure :: nx_fft
     procedure :: ny_fft
-    procedure :: swd_to_fft_coeffs_1D
-    procedure :: swd_to_fft_coeffs_2D
+
 end type swd_fft
 
 interface swd_fft
@@ -115,9 +116,9 @@ end function y_fft
 
 !==============================================================================
 
-function fft_field_1D(self, swd_coeffs, nx_fft_in) result(f)
+function fft_field_1D(self, fft_coeffs, nx_fft_in) result(f)
 class(swd_fft), intent(inout) :: self
-complex(wp), intent(in) :: swd_coeffs(0:)
+complex(wp), intent(in) :: fft_coeffs(:, :)
 integer, optional, intent(in) :: nx_fft_in
 real(wp), allocatable :: f(:, :)
 integer :: nx_fft
@@ -130,15 +131,15 @@ if (self % error % raised()) then
     return
 end if
 
-f = irfft2(self % swd_to_fft_coeffs_1D(swd_coeffs), 2*self % nsumx, 1, nx_fft, 1)
+f = irfft2(fft_coeffs, 2*self % nsumx, 1, nx_fft, 1)
 
 end function fft_field_1D
 
 !==============================================================================
 
-function fft_field_2D(self, swd_coeffs, nx_fft_in, ny_fft_in) result(f)
+function fft_field_2D(self, fft_coeffs, nx_fft_in, ny_fft_in) result(f)
 class(swd_fft), intent(inout) :: self
-complex(wp), intent(in) :: swd_coeffs(:, 0:, 0:)
+complex(wp), intent(in) :: fft_coeffs(:, :)
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(wp), allocatable :: f(:, :)
 integer :: nx_fft, ny_fft
@@ -152,7 +153,7 @@ if (self % error % raised()) then
     return
 end if
 
-f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy + 1, nx_fft, ny_fft)
+f = irfft2(fft_coeffs, 2*self % nsumx, 2*self % nsumy + 1, nx_fft, ny_fft)
 
 end function fft_field_2D
 

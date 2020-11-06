@@ -1747,10 +1747,12 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 2*self % nsumy + 1)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx), nx_fft_in, ny_fft_in)
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx))
+elev = self % fft % fft_field_2D(c_fft, nx_fft_in, ny_fft_in)
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]

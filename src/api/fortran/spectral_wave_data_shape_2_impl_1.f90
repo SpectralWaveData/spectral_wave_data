@@ -1533,10 +1533,12 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 1)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = self % fft % fft_field_1D(self % h_cur(0:self % nsumx), nx_fft_in)
+c_fft = self % fft % swd_to_fft_coeffs_1D(self % h_cur(0:self % nsumx))
+elev = self % fft % fft_field_1D(c_fft, nx_fft_in)
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]
