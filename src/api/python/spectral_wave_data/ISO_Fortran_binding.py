@@ -58,3 +58,13 @@ class CFI_cdesc_t_2D(Structure):
                 ("attribute", CFI_attribute_t),
                 ("type", CFI_type_t),
                 ("dim", CFI_dim_t*2)]
+
+# CFI_cdesc_t structure for 3D array
+class CFI_cdesc_t_3D(Structure):
+    _fields_ = [("base_addr", c_void_p), 
+                ("elem_len", c_size_t), 
+                ("version", c_int),
+                ("rank", CFI_rank_t),
+                ("attribute", CFI_attribute_t),
+                ("type", CFI_type_t),
+                ("dim", CFI_dim_t*3)]

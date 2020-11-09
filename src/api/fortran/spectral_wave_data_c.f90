@@ -65,6 +65,7 @@ public :: error_get_msg ! Return error message
 public :: error_clear   ! Clear the error flag
 public :: close         ! Destructor
 public :: elev_fft      ! Surface elevation FFT
+public :: grad_phi_fft  ! Grad phi FFT
 public :: x_fft         ! x-grid for FFT-based evaluation
 public :: y_fft         ! y-grid for FFT-based evaluation
 !------------------------------------------------------------------------------
@@ -719,6 +720,28 @@ allocate(elev_arr(nx_fft, ny_fft))
 elev_arr = swd % obj % elev_fft(nx_fft_f, ny_fft_f)
 
 end subroutine elev_fft
+
+!==============================================================================
+
+subroutine grad_phi_fft(this, z, nx_fft, ny_fft, grad_phi_arr) bind(c, name='swd_api_grad_phi_fft_')
+type(c_ptr), value              :: this        ! Actual spectral_wave_data_c object
+real(c_wp), value               :: z
+integer(c_int), value           :: nx_fft, ny_fft       ! Dimensions of output-grid
+real(c_wp), allocatable, intent(out) :: grad_phi_arr(:, :, :)
+type(spectral_wave_data_c), pointer :: swd
+
+integer :: nx_fft_f, ny_fft_f
+real(wp) :: z_f
+        
+nx_fft_f = nx_fft
+ny_fft_f = ny_fft
+z_f = z
+call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
+
+allocate(grad_phi_arr(3, nx_fft, ny_fft))
+grad_phi_arr = swd % obj % grad_phi_fft(z_f, nx_fft_f, ny_fft_f)
+
+end subroutine grad_phi_fft
 
 !==============================================================================
 

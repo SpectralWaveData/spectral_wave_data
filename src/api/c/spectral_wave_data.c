@@ -22,6 +22,24 @@ CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft) {
 
 }
 
+CFI_cdesc_t *swd_api_grad_phi_fft(void *swd, double z, int nx_fft, int ny_fft) {
+    CFI_cdesc_t *desc_grad_phi_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(3)));
+
+    int rc = CFI_establish(desc_grad_phi_arr,
+                           NULL,
+                           CFI_attribute_allocatable,
+                           CFI_type_double,
+                           sizeof(double),
+                           (CFI_rank_t)3,
+                           NULL);
+    assert(CFI_SUCCESS == rc);
+
+    swd_api_grad_phi_fft_(swd, z, nx_fft, ny_fft, desc_grad_phi_arr);
+
+    return desc_grad_phi_arr;
+
+}
+
 CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft) {
     CFI_cdesc_t *desc_x_arr = (CFI_cdesc_t *) malloc(sizeof(CFI_CDESC_T(1)));
 

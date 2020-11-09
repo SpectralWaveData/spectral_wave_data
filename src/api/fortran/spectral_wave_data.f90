@@ -91,6 +91,7 @@ contains
     procedure(get_chr),     deferred :: get_chr           ! Extract a specified char parameter
     procedure(close),       deferred :: close             ! Manual destructor
     procedure(elev_fft),    deferred :: elev_fft          ! Surface elevation on a regular grid using FFT 
+    procedure(grad_phi_fft),deferred :: grad_phi_fft      ! Grad phi on a regular grid using FFT 
     procedure :: x_fft                                    ! x-vector corresponding to output from FFT routines
     procedure :: y_fft                                    ! y-vector corresponding to output from FFT routines
     procedure :: error_raised                             ! Return .true. if error has been signaled
@@ -269,6 +270,14 @@ abstract interface
         integer, optional, intent(in) :: nx_fft_in, ny_fft_in
         real(knd), allocatable :: elev(:, :)
     end function elev_fft
+
+    function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+        import
+        class(spectral_wave_data), intent(inout) :: self ! Actual class
+        real(wp), intent(in) :: z
+        integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+        real(knd), allocatable :: grad_phi(:, :, :)
+    end function grad_phi_fft
 
 end interface
 

@@ -33,7 +33,7 @@ type :: swd_fft
     real(wp) :: sizex, sizey
     real(wp) :: d
     integer :: nsumx, nsumy
-    real(wp), allocatable :: kx(:,:), ky(:,:), k(:,:), tanhkh(:,:)
+    real(wp), allocatable, public :: kx(:,:), ky(:,:), k(:,:), tanhkh(:,:)
     type(swd_error), public :: error
 contains
     private
@@ -72,7 +72,7 @@ integer :: i
 self % nsumx = nsumx
 self % dkx = dkx
 self % sizex = 2.0_wp*pi/dkx
-self % d = self % d
+self % d = d
 
 ! it is assumed nsumy <= 1 means long-crested waves
 if (nsumy <= 1) then

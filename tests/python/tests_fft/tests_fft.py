@@ -9,6 +9,8 @@ case_params = []
 test_ids = []
 
 shp_imp = [(1, 1), (2, 1), (4, 1), (4, 2), (5, 1)]
+funcs = ['elev', 'grad_phi']
+
 
 z_ind = ['elev'] # functions independent of z
 
@@ -21,16 +23,19 @@ for shape, impl in shp_imp:
             for nsumx in [-1, 13, 14]:
                 for nsumy in [-1, 13, 14]:
                     for dc_bias in [True, False]:
-                        for norder in [0, -1]:
+                        for norder in [-1, 0, 2, 4, 7]:
                             for nx_fft in [-1, -2, 50, 51]:
                                 for ny_fft in [-1, -2, 50, 51]:
                                     # skip values for nsumy and ny_fft not valid for 1D
                                     if shape in [1, 2] and (nsumy > 1 or abs(ny_fft) != 1):
                                         continue
-                                    for func in ['elev']:
-                                        for z in [0, -1.1, 1.1]:
+                                    for func in funcs:
+                                        for z in [0, -2.1, 2.1]:
                                             # skip z-dependent for fields independent of z
                                             if func in z_ind and (norder != 0 or z != 0):
+                                                continue
+                                            # skip norder for z <= 0
+                                            if z <= 0 and norder != 0:
                                                 continue
 
                                             test_ids.append(f'{shape=}, {impl=}, {nx=}, {ny=}, {nsumx=}, {nsumy=}, {dc_bias=}, {norder=}, {nx_fft=}, {ny_fft=}, {func=}, {z=}')
@@ -41,26 +46,53 @@ for shape, impl in shp_imp:
 def test_fft(test_case):
     shape, impl, nx, ny, nsumx, nsumy, dc_bias, norder, nx_fft, ny_fft, func, z = test_case
 
-    swd = SpectralWaveData(f'inputfiles/shape{shape}_impl{impl}_nx{nx}_ny{ny}.swd', nsumx=nsumx, nsumy=nsumy,
-                           norder=norder, dc_bias=dc_bias)
-    swd.update_time(0.0)
+    with SpectralWaveData(f'inputfiles/shape{shape}_impl{impl}_nx{nx}_ny{ny}.swd',
+                          nsumx=nsumx, nsumy=nsumy, norder=norder, dc_bias=dc_bias) as swd:
+        swd.update_time(0.0)
 
-    x_fft = swd.x_fft(nx_fft=nx_fft)
-    y_fft = swd.y_fft(ny_fft=ny_fft)
+        x_fft = swd.x_fft(nx_fft=nx_fft)
+        y_fft = swd.y_fft(ny_fft=ny_fft)
 
-    # test only nxp x nyp gridpoints
-    nxp, nyp = 5, 5
-    ixs = np.unique(np.linspace(0, x_fft.size - 1, nxp).astype(int))
-    iys = np.unique(np.linspace(0, y_fft.size - 1, nyp).astype(int))
-    res = np.zeros((ixs.size, iys.size))
-    res_fft = np.zeros((ixs.size, iys.size))
+        # test only nxp x nyp gridpoints
+        nxp, nyp = 5, 5
+        ixs = np.unique(np.linspace(0, x_fft.size - 1, nxp).astype(int))
+        iys = np.unique(np.linspace(0, y_fft.size - 1, nyp).astype(int))
 
-    arr_fft = getattr(swd, f'{func}_fft')(nx_fft=nx_fft, ny_fft=ny_fft)
-    assert((x_fft.size, y_fft.size) == arr_fft.shape)
-    for i, ix in enumerate(ixs):
-        for j, iy in enumerate(iys):
-            res[i, j] = getattr(swd, func)(x_fft[ix], y_fft[iy])
-            res_fft[i, j] = arr_fft[ix, iy]
-    swd.close()
-    assert(np.allclose(res, res_fft))
+        if func in z_ind:
+            arr_fft = getattr(swd, f'{func}_fft')(nx_fft=nx_fft, ny_fft=ny_fft)
+        else:
+            arr_fft = getattr(swd, f'{func}_fft')(z, nx_fft=nx_fft, ny_fft=ny_fft)
+
+        # scalar output
+        if arr_fft.ndim == 2:
+            res = np.zeros((ixs.size, iys.size))
+            res_fft = np.zeros((ixs.size, iys.size))
+            assert((x_fft.size, y_fft.size) == arr_fft.shape)
+            for i, ix in enumerate(ixs):
+                for j, iy in enumerate(iys):
+                    if func in z_ind:
+                        res[i, j] = getattr(swd, func)(x_fft[ix], y_fft[iy])
+                    else:
+                        res[i, j] = getattr(swd, func)(x_fft[ix], y_fft[iy], z)
+                    res_fft[i, j] = arr_fft[ix, iy]
+            assert(np.allclose(res, res_fft))
+        elif arr_fft.ndim == 3: # 3-component output
+            res = np.zeros((3, ixs.size, iys.size))
+            res_fft = np.zeros((3, ixs.size, iys.size))
+            assert((3, x_fft.size, y_fft.size) == arr_fft.shape)
+            for i, ix in enumerate(ixs):
+                for j, iy in enumerate(iys):
+                    if func in z_ind:
+                        resxyz = getattr(swd, func)(x_fft[ix], y_fft[iy])
+                    else:
+                        resxyz = getattr(swd, func)(x_fft[ix], y_fft[iy], z)
+                    res[:, i, j] = np.asarray([resxyz.x, resxyz.y, resxyz.z])
+                    res_fft[:, i, j] = arr_fft[:, ix, iy]
+            print(np.max(np.abs(res[0, :, :] - res_fft[0, :, :])))
+            print(np.max(np.abs(res[1, :, :] - res_fft[1, :, :])))
+            print(np.max(np.abs(res[2, :, :] - res_fft[2, :, :])))
+            assert(np.allclose(res[0, :, :], res_fft[0, :, :]))
+            assert(np.allclose(res[1, :, :], res_fft[1, :, :]))
+            assert(np.allclose(res[2, :, :], res_fft[2, :, :]))
+
 

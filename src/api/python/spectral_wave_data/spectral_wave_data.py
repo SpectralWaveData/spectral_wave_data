@@ -851,6 +851,56 @@ class SpectralWaveData(object):
         
         return res.T
 
+    def grad_phi_fft(self, z, nx_fft=-1, ny_fft=-1):
+        """Calculates grad phi at a regular FFT-grid with
+        dimensions (nx_fft, ny_fft). It is assumed that the current time has 
+        been set using the method :meth:`update_time`.
+
+        Parameters
+        ----------
+        z : float
+            z-coordinate for calculation og grad phi.
+        nx_fft, ny_fft : int, optional
+            Output dimensions.
+
+        Returns
+        -------
+        3D ndarray
+            Grad phi = (u,v,w) on a regular grid.
+
+        Raises
+        ------
+        SwdInputValueError
+            Invalid grid dimensions (nx_fft, ny_fft).
+
+        Examples
+        --------
+        
+
+        """
+        # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
+        CFI_obj = swdlib.swd_api_grad_phi_fft(self.obj, z, nx_fft, ny_fft)    
+        
+        if swdlib.swd_api_error_raised(self.obj):
+            id = swdlib.swd_api_error_get_id(self.obj)
+            msg = swdlib.swd_api_error_get_msg(self.obj).decode()
+            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            if id == 1004:
+                raise SwdInputValueError(msg)
+            else:
+                raise SwdError(msg)
+
+        # array dimensions
+        nx_out = CFI_obj.contents.dim[1].extent
+        ny_out = CFI_obj.contents.dim[2].extent
+
+        data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
+        res = np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out, 3)).copy()
+
+        swdlib.swd_api_fft_deallocate(CFI_obj)
+        
+        return np.swapaxes(res, 0, 2)
+
     def x_fft(self, nx_fft=-1):
         """Returns the x-grid corresponding to the FFT-based routines *_fft
         called with the same nx_fft.

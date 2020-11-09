@@ -17,7 +17,7 @@ import os
 import sys
 import platform
 from ctypes import c_bool, c_double, c_int, c_char_p, c_void_p, Structure, CDLL, POINTER
-from .ISO_Fortran_binding import CFI_cdesc_t_1D, CFI_cdesc_t_2D
+from .ISO_Fortran_binding import CFI_cdesc_t_1D, CFI_cdesc_t_2D, CFI_cdesc_t_3D
 
 assert sys.version_info >= (2, 7, 11)
 
@@ -150,6 +150,9 @@ swdlib.swd_api_close.restype = c_void_p
 
 swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
 swdlib.swd_api_elev_fft.restype = POINTER(CFI_cdesc_t_2D)
+
+swdlib.swd_api_grad_phi_fft.argtypes = [c_void_p, c_double, c_int, c_int]
+swdlib.swd_api_grad_phi_fft.restype = POINTER(CFI_cdesc_t_3D)
 
 swdlib.swd_api_x_fft.argtypes = [c_void_p, c_int]
 swdlib.swd_api_x_fft.restype = POINTER(CFI_cdesc_t_1D)
