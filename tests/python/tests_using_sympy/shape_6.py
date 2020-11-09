@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
-from struct import pack
+import sys
+import subprocess
 
 import sympy as sp
 import numpy as np
@@ -229,7 +229,19 @@ class Shape6:
         elv_yy = sp.N(self.f_elev_yy.subs({x:x_app, y:y_app, t:t_app}))
         return {'xx':elv_xx, 'xy':elv_xy, 'yy':elv_yy}
 
-
     def write_swd(self, file_swd):
         airy.write_swd(file_swd, self.amps, self.dirs, self.phases, kwaves=self.kwaves,
                        depth=self.depth, grav=self.grav, is_deg_dirs=False, is_deg_phases=False)
+
+    def check_swd_meta(self, file_swd, n):
+        if sys.version_info >= (3, 5):
+            result = subprocess.run(["swd_meta", file_swd], capture_output=True)
+            assert result.returncode == 0
+            text = str(result.stdout)
+
+            def check(tag, val):
+                text_ok = "%-8s %s" % (tag + ':', val)
+                assert text_ok in text, ("missing: %s" % text_ok)
+
+            check("shp", 6)
+            check("n", n)

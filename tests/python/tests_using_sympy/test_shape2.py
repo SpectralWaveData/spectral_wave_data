@@ -91,6 +91,7 @@ def make_waves(request, tmp_path_factory):
     #swd_anal.dump_spectral_fun(j=2, dt=0.01, tmax=1.0)
     #swd_anal.dump_spectral_fun(j=3, dt=0.01, tmax=1.0)
     swd_anal.write_swd(file_swd, dt=0.1, nsteps=11)
+    swd_anal.check_swd_meta(file_swd, nswd)
     swd_num = SpectralWaveData(file_swd, x0, y0, t0, beta, rho=1025.0, impl=impl, dc_bias=True)
     # Inject class variables
     #request.cls.swd_num = swd_num
@@ -237,6 +238,10 @@ def test_waves(make_waves):
         dt_swd = swd_num.get('dt')
         assert isinstance(dt_swd, float)
         assert math.isclose(dt_swd, 0.1, rel_tol=1e-5)
+
+        dc_bias = swd_num["dc_bias"]
+        assert isinstance(dc_bias, bool)
+        assert dc_bias is True
 
         cid = swd_num.get('cid')
         assert isinstance(cid, str)

@@ -3,18 +3,9 @@
 ### Windows-10
 
 On Windows the precompiled libraries and Python install wheels are build
-using Intel Fortran 2020. Consequently, our software requires recent
-core system DLLs provided by Intel. Hence, you should download and install the
-[Intel redistributable library for Fortran 2020](https://software.intel.com/en-us/articles/redistributable-libraries-for-intel-c-and-fortran-2020-compilers-for-windows)
-using default install options.
+using Intel Fortran 2020. 
 
-If you already have a recent Intel Fortran compiler installed, you may skip
-this installation. However, if you encounter some DLL loading problems, you 
-must install the actual redistributable library. 
-
-The above instructions relate to application of the Python distribution too.
-
-If you still encounter error messages related to loading the Python module,
+If you encounter error messages related to loading the Python module,
 you have a corrupt setup of your general Python system. This could be identified
 by the order of loading python packages. 
 The best solution is to reinstall your Python system in a proper way.
@@ -31,13 +22,10 @@ always a source of subtle problems and should be avoided.
 ### Linux
 
 There are many different Linux distributions using different incompatible
-versions of system libraries. Without using very old versions of gcc/gfortran
-it is not possible to provide binaries working on all Linux distributions.
-
-Since spectral_wave_data **requires features from version 9.x or newer** of 
-the Gnu Compiler Collection (gcc), it is not possible to create a unified 
-binary. This is why you don't find a Linux version of spectral_wave_data on
-[PyPI](https://pypi.org/project/spectral-wave-data/).
+versions of system libraries. 
+spectral_wave_data **depends on features from version 9.x or newer** of 
+the Gnu Compiler Collection (gcc). It has also been compiled using
+Intel Fortran from 2019-2020. Older compilers will NOT work on this package.
 
 The uploaded Linux binaries and Python wheels are compiled and tested 
 using gfortran/gcc 9.x on the Ubuntu x86_64 architecture.

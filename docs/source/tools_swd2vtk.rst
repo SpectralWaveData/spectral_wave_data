@@ -683,14 +683,6 @@ Download and Installation
 Binary distributions of **swd2vtk**, for Windows and Linux, can be downloaded from the release tab of the
 GitHub repository **spectral_wave_data**.
 
-.. note::
-
-    To run **swd2vtk** on windows you need to download and install the latest version of the
-    `Intel Redistributable Package for Fortran 2020
-    <https://software.intel.com/en-us/articles/intel-compilers-redistributable-libraries-by-version>`_.
-    The Intel redistributable contains required DLLs. If you already have a very recent Intel
-    Fortran compiler installed you may skip this installation.
-
 ---------------
 Acknowledgement
 ---------------

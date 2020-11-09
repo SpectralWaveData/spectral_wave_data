@@ -6,7 +6,7 @@ from spectral_wave_data import SpectralWaveData, SwdError  # Supports Python 2.x
 # First we define some constructor parameters...
 
 # Relate the application and SWD coordinate systems
-x0 = 0.0; y0 = 0.0; t0 = 0.0; beta = 0.0
+x0 = 0.0; y0 = 0.0; t0 = 0.0; beta = 0.0  # The default values in the Python API
 
 # Optional: impl=0 means apply recommended implementation based on header of swd file.
 impl = 0
@@ -35,6 +35,12 @@ except SwdError as e:
     print(str(e))
     # Do whatever necessary...
     raise
+
+# As an alternative we may apply the Python with-statement:
+#
+# with SpectralWaveData('stokesTest_shallowWater.swd') as swd:
+#     Do something with the swd object.
+#
 
 # Time domain simulation...
 t = 0.0;  dt = 0.1;  tmax = 1.0;
@@ -102,21 +108,22 @@ swd.strip(tmin=100.0, tmax=200.0, file_swd='my_new.swd')
 
 # ===========================================================
 # The meth swd.get(name) returns the value of parameter 'name'
-# from the swd file. Three examples are given below...
+# from the swd file. Four examples are given below...
+# The alternative key notation is applied in the last two cases
 # ===========================================================
 
 # Extract the cid string from the SWD file
 # (contains typical the content of the input file applied in the wave generator)
-print("cid = ", swd.get('cid'))
+print("cid = ", swd.get("cid"))
 
 # The shp parameter from the swd file
-print("shp = ", swd.get('shp'))
+print("shp = ", swd.get("shp"))
 
 # Time step in SWD file
-print("dt = ", swd.get('dt'))
+print("dt = ", swd["dt"])
 
 # Name of actual implementation class
-print("cls_name = ", swd.get('class'))
+print("cls_name = ", swd["class"])
 
 # Close SWD file and free related memory
 swd.close()
