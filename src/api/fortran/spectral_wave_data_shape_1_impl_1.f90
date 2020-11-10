@@ -78,6 +78,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_1_impl_1
 
 interface spectral_wave_data_shape_1_impl_1
@@ -85,6 +86,7 @@ interface spectral_wave_data_shape_1_impl_1
 end interface
 
 real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+complex(wp), parameter :: iu = cmplx(0.0_wp, 1.0_wp, wp)
 
 contains
 
@@ -94,6 +96,8 @@ subroutine close(self)
 class(spectral_wave_data_shape_1_impl_1) :: self  ! Object to destruct
 !
 logical opened
+!
+call self % fft % close()
 !
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
@@ -279,7 +283,7 @@ else
 end if
 
 ! make object for FFT-based evaluations
-self % fft = swd_fft(self % nsumx, 1, self % dk, 0.0_wp)
+self % fft = swd_fft(self % nsumx, 0, self % dk, 0.0_wp, -1.0_wp)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -608,7 +612,7 @@ end subroutine update_time
 
 !==============================================================================
 
-function SfunTaylor(z, j, dk, order) result(res) ! Value of Sfun(j) based on Taylor expansion
+elemental function SfunTaylor(z, j, dk, order) result(res) ! Value of Sfun(j) based on Taylor expansion
 real(knd),       intent(in) :: z   ! z-position (>0)
 integer,         intent(in) :: j   ! Index of Sfun
 real(wp),        intent(in) :: dk  ! self % dk
@@ -1443,10 +1447,12 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_1_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 1)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_1_impl_1::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = self % fft % fft_field_1D(self % h_cur(0:self % nsumx), nx_fft_in)
+c_fft = self % fft % swd_to_fft_coeffs_1D(self % h_cur(0:self % nsumx))
+elev = self % fft % fft_field_1D(c_fft, nx_fft_in)
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]
@@ -1456,6 +1462,41 @@ if (self % fft % error % raised()) then
 end if
 
 end function elev_fft
+
+!==============================================================================
+
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+class(spectral_wave_data_shape_1_impl_1), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: grad_phi(:, :, :)
+real(wp), allocatable :: phi_x(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 1)
+real(wp), dimension(self % nsumx + 1, 1) :: Zfun, kz, coshkz, sinhkz
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_1_impl_1::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
+
+if (z > 0.0_wp .and. self % norder > 0) then
+    Zfun = SfunTaylor(z, 1, self % fft % k, self % norder)
+else
+    Zfun = exp(z * self % fft % k)
+endif
+
+c_fft = Zfun*self % fft % swd_to_fft_coeffs_1D(self % c_cur(0:self % nsumx))
+phi_x = self % fft % fft_field_1D(iu*self % fft % kx*c_fft, nx_fft_in)
+allocate(grad_phi(3, size(phi_x), 1))
+grad_phi(1, :, :) = phi_x*self % cbeta
+grad_phi(2, :, :) = phi_x*self % sbeta
+grad_phi(3, :, :) = self % fft % fft_field_1D(self % fft % k*c_fft, nx_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if            
+
+end function grad_phi_fft
 
 !==============================================================================
 

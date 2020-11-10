@@ -82,6 +82,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_5_impl_1
 
 interface spectral_wave_data_shape_5_impl_1
@@ -89,6 +90,7 @@ interface spectral_wave_data_shape_5_impl_1
 end interface
 
 real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+complex(wp), parameter :: iu = cmplx(0.0_wp, 1.0_wp, wp)
 real(wp), parameter :: Rfun_eps = 100.0_wp * epsilon(1.0_wp)
 
 contains
@@ -99,6 +101,8 @@ subroutine close(self)
 class(spectral_wave_data_shape_5_impl_1) :: self  ! Object to destruct
 !
 logical opened
+!
+call self % fft % close()
 !
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
@@ -314,7 +318,7 @@ else
 end if
 
 ! make object for FFT-based evaluations
-self % fft = swd_fft(self % nsumx, self % nsumy, self % dkx, self % dky)
+self % fft = swd_fft(self % nsumx, self % nsumy, self % dkx, self % dky, self % d)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -720,6 +724,60 @@ do p = 1, order - 1
 end do
 !
 end function SfunTaylor
+
+!==============================================================================
+
+elemental function ZfunTaylor(kz, tanhkh, order) result(res)
+! Taylor expansion of cosh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj*tanhkh
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj
+    end if
+end do
+!
+end function ZfunTaylor
+
+!==============================================================================
+
+elemental function ZhfunTaylor(kz, tanhkh, order) result(res) 
+! Taylor expansion of sinh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = tanhkh
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj*tanhkh
+    end if
+end do
+!
+end function ZhfunTaylor
 
 !==============================================================================
 
@@ -1747,10 +1805,12 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 2*self % nsumy + 1)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = self % fft % fft_field_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx), nx_fft_in, ny_fft_in)
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx))
+elev = self % fft % fft_field_2D(c_fft, nx_fft_in, ny_fft_in)
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]
@@ -1760,6 +1820,49 @@ if (self % fft % error % raised()) then
 end if
 
 end function elev_fft
+
+!==============================================================================
+
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: grad_phi(:, :, :)
+real(wp), allocatable :: phi_x(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 2*self % nsumy+ 1)
+real(wp), dimension(self % nsumx + 1, 2*self % nsumy + 1) :: Zfun, Zhfun, kz, coshkz, sinhkz
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
+
+kz = self % fft % k*z
+
+if (z > 0.0_wp .and. self % norder > 0) then
+    Zfun = ZfunTaylor(kz, self % fft % tanhkh, self % norder)
+    Zhfun = ZhfunTaylor(kz, self % fft % tanhkh, self % norder)
+else
+    coshkz = cosh(kz)
+    sinhkz = sinh(kz)
+    Zfun = coshkz + self % fft % tanhkh*sinhkz
+    Zhfun = sinhkz + self % fft % tanhkh*coshkz
+endif
+
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % c_cur(:, 0:self % nsumy, 0:self % nsumx))
+phi_x = self % fft % fft_field_2D(iu*self % fft % kx*c_fft*Zfun, nx_fft_in, ny_fft_in)
+allocate(grad_phi(3, size(phi_x,1), size(phi_x,2)))
+grad_phi(2, :, :) = self % fft % fft_field_2D(iu*self % fft % ky*c_fft*Zfun, nx_fft_in, ny_fft_in)
+grad_phi(3, :, :) = self % fft % fft_field_2D(self % fft % k*c_fft*Zhfun, nx_fft_in, ny_fft_in)
+
+grad_phi(1, :, :) = phi_x * self % cbeta - grad_phi(2, :, :) * self % sbeta
+grad_phi(2, :, :) = phi_x * self % sbeta + grad_phi(2, :, :) * self % cbeta
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if            
+
+end function grad_phi_fft
 
 !==============================================================================
 

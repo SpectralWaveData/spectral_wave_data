@@ -78,6 +78,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_4_impl_2
 
 interface spectral_wave_data_shape_4_impl_2
@@ -85,6 +86,7 @@ interface spectral_wave_data_shape_4_impl_2
 end interface
 
 real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+complex(wp), parameter :: iu = cmplx(0.0_wp, 1.0_wp, wp)
 
 contains
 
@@ -94,6 +96,8 @@ subroutine close(self)
 class(spectral_wave_data_shape_4_impl_2) :: self  ! Object to destruct
 !
 logical opened
+!
+call self % fft % close()
 !
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
@@ -298,7 +302,7 @@ end if
 ! Due to symmetry nsumy is ignored
 
 ! make object for FFT-based evaluations
-self % fft = swd_fft(self % nsum, self % nsum, self % dk, self % dk)
+self % fft = swd_fft(self % nsum, self % nsum, self % dk, self % dk, -1.0_wp)
 
 if (self % nsteps == 1) then
     dt_tpol = 1.0_wp
@@ -847,7 +851,7 @@ end subroutine update_time
 
 !==============================================================================
 
-function SfunTaylor(z, kjxjy, order) result(res) ! Value of Sfun based on Taylor expansion
+elemental function SfunTaylor(z, kjxjy, order) result(res) ! Value of Sfun based on Taylor expansion
 real(wp), intent(in) :: z   ! z-position (>0)
 real(wp), intent(in) :: kjxjy ! Actual k
 integer,  intent(in) :: order ! expansion order
@@ -1905,14 +1909,59 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_4_impl_2), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsum + 1, 2*self % nsum + 1)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::elev_fft'
 character(len=:), allocatable :: err_msg(:)
 
-elev = 0.0_wp
-err_msg = ["not implemented"]
-call self % error % set_id_msg(err_proc, 1004, err_msg)                          
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % fft % impl2_to_impl1(self % h_cur))
+
+elev = self % fft % fft_field_2D(c_fft, nx_fft_in, ny_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
 
 end function elev_fft
+
+!==============================================================================
+
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+class(spectral_wave_data_shape_4_impl_2), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: grad_phi(:, :, :)
+real(wp), allocatable :: phi_x(:, :)
+complex(wp) :: c_fft(self % nsum + 1, 2*self % nsum + 1)
+real(wp) :: Zfun(self % nsum + 1, 2*self % nsum + 1)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_4_impl_2::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
+
+if (z > 0.0_wp .and. self % norder > 0) then
+    Zfun = SfunTaylor(z, self % fft % k, self % norder)
+else
+    Zfun = exp(z * self % fft % k)
+endif
+
+c_fft = Zfun*self % fft % swd_to_fft_coeffs_2D(self % fft % impl2_to_impl1(self % c_cur))
+phi_x = self % fft % fft_field_2D(iu*self % fft % kx*c_fft, nx_fft_in, ny_fft_in)
+allocate(grad_phi(3, size(phi_x,1), size(phi_x,2)))
+grad_phi(2, :, :) = self % fft % fft_field_2D(iu*self % fft % ky*c_fft, nx_fft_in, ny_fft_in)
+grad_phi(3, :, :) = self % fft % fft_field_2D(self % fft % k*c_fft, nx_fft_in, ny_fft_in)
+
+grad_phi(1, :, :) = phi_x * self % cbeta - grad_phi(2, :, :) * self % sbeta
+grad_phi(2, :, :) = phi_x * self % sbeta + grad_phi(2, :, :) * self % cbeta
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if            
+
+end function grad_phi_fft
 
 !==============================================================================
 

@@ -31,18 +31,23 @@ type :: swd_fft
     private
     real(wp) :: dkx, dky
     real(wp) :: sizex, sizey
+    real(wp) :: d
     integer :: nsumx, nsumy
+    real(wp), allocatable, public :: kx(:,:), ky(:,:), k(:,:), tanhkh(:,:)
     type(swd_error), public :: error
 contains
     private
     procedure, public :: fft_field_1D
     procedure, public :: fft_field_2D
+    procedure, public :: impl2_to_impl1
     procedure, public :: x_fft
     procedure, public :: y_fft
+    procedure, public :: swd_to_fft_coeffs_1D
+    procedure, public :: swd_to_fft_coeffs_2D
+    procedure, public :: close
     procedure :: nx_fft
     procedure :: ny_fft
-    procedure :: swd_to_fft_coeffs_1D
-    procedure :: swd_to_fft_coeffs_2D
+
 end type swd_fft
 
 interface swd_fft
@@ -55,19 +60,23 @@ contains
 
 !==============================================================================
 
-function constructor(nsumx, nsumy, dkx, dky) result(self)
+function constructor(nsumx, nsumy, dkx, dky, d) result(self)
 integer, intent(in) :: nsumx, nsumy
 real(wp), intent(in) :: dkx, dky
+real(wp), intent(in) :: d ! water depth
 
 type(swd_fft) :: self
+
+integer :: i
 
 self % nsumx = nsumx
 self % dkx = dkx
 self % sizex = 2.0_wp*pi/dkx
+self % d = d
 
 ! it is assumed nsumy <= 1 means long-crested waves
 if (nsumy <= 1) then
-    self % nsumy = 1
+    self % nsumy = 0
     self % dky = 0.0_wp
     self % sizey = 0.0_wp
 else
@@ -77,6 +86,38 @@ else
 end if
 
 call self % error % clear()
+
+! build matrices for derivatives, etc
+allocate(self % kx(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % ky(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % k(self % nsumx + 1, 2*self % nsumy + 1))
+allocate(self % tanhkh(self % nsumx + 1, 2*self % nsumy + 1))
+
+! kx-matrix
+do i = 1, self % nsumx + 1
+    self % kx(i, :) = self%dkx*(i - 1)
+end do
+
+! ky-matrix and k-matrix
+if (self % nsumy > 1) then
+    do i = 1, self % nsumy + 1
+        self % ky(:, i) = self%dky*(i - 1)
+    end do
+    do i = self % nsumy + 2, 2*self % nsumy + 1
+        self % ky(:, i) = self%dky*(i - 2*self % nsumy - 2)
+    end do
+    self % k = sqrt(self % kx**2 + self % ky**2)
+else
+    self % ky = 0.0_wp
+    self % k = self % kx
+end if
+
+! tanh(kh)-matrix
+if (self % d > 0.0_wp) then
+    self % tanhkh = tanh(self % k*self % d)
+else
+    self % tanhkh = 1.0_wp
+end if 
 
 end function constructor
 
@@ -114,9 +155,9 @@ end function y_fft
 
 !==============================================================================
 
-function fft_field_1D(self, swd_coeffs, nx_fft_in) result(f)
+function fft_field_1D(self, fft_coeffs, nx_fft_in) result(f)
 class(swd_fft), intent(inout) :: self
-complex(wp), intent(in) :: swd_coeffs(0:)
+complex(wp), intent(in) :: fft_coeffs(:, :)
 integer, optional, intent(in) :: nx_fft_in
 real(wp), allocatable :: f(:, :)
 integer :: nx_fft
@@ -129,15 +170,15 @@ if (self % error % raised()) then
     return
 end if
 
-f = irfft2(self % swd_to_fft_coeffs_1D(swd_coeffs), 2*self % nsumx, 1, nx_fft, 1)
+f = irfft2(fft_coeffs, 2*self % nsumx, 1, nx_fft, 1)
 
 end function fft_field_1D
 
 !==============================================================================
 
-function fft_field_2D(self, swd_coeffs, nx_fft_in, ny_fft_in) result(f)
+function fft_field_2D(self, fft_coeffs, nx_fft_in, ny_fft_in) result(f)
 class(swd_fft), intent(inout) :: self
-complex(wp), intent(in) :: swd_coeffs(:, 0:, 0:)
+complex(wp), intent(in) :: fft_coeffs(:, :)
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(wp), allocatable :: f(:, :)
 integer :: nx_fft, ny_fft
@@ -151,7 +192,7 @@ if (self % error % raised()) then
     return
 end if
 
-f = irfft2(self % swd_to_fft_coeffs_2D(swd_coeffs), 2*self % nsumx, 2*self % nsumy + 1, nx_fft, ny_fft)
+f = irfft2(fft_coeffs, 2*self % nsumx, 2*self % nsumy + 1, nx_fft, ny_fft)
 
 end function fft_field_2D
 
@@ -238,7 +279,7 @@ integer :: ny_fft
 character(len=*), parameter :: err_proc = 'swd_fft::ny_fft'
 character(len=250) :: err_msg(5)
 
-if (self % nsumy == 1) then  ! 1D
+if (self % nsumy == 0) then  ! 1D
     if (present(ny_fft_in)) then
         if (abs(ny_fft_in) /= 1) then
             write(err_msg(1),'(a)') "Invalid grid size ny_fft."
@@ -271,5 +312,52 @@ end if
 end function ny_fft
 
 !==============================================================================
+
+function impl2_to_impl1(self, impl2_coeffs) result(impl1_coeffs)
+class(swd_fft), intent(in) :: self  ! Actual class
+complex(wp), intent(in) :: impl2_coeffs(4, (self%nsumx + 1)*(self%nsumx + 2)/2)
+complex(wp) :: impl1_coeffs(2, 0:self % nsumx, 0:self % nsumx)
+
+integer ii, ix, iy
+
+ii = 0
+do ix = 0, self % nsumx
+    iy = 0
+    ii = ii + 1
+    if (ix == 0) then
+        impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+        cycle
+    end if
+    impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+    impl1_coeffs(1,ix,iy) = impl2_coeffs(3,ii)
+    impl1_coeffs(2,ix,iy) = impl2_coeffs(4,ii)
+    do iy = 1, ix - 1
+        ii = ii + 1
+        impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+        impl1_coeffs(2,iy,ix) = impl2_coeffs(2,ii)
+        impl1_coeffs(1,ix,iy) = impl2_coeffs(3,ii)
+        impl1_coeffs(2,ix,iy) = impl2_coeffs(4,ii)
+    end do
+    iy = ix
+    ii = ii + 1
+    impl1_coeffs(1,iy,ix) = impl2_coeffs(1,ii)
+    impl1_coeffs(2,iy,ix) = impl2_coeffs(2,ii)
+end do
+
+end function impl2_to_impl1
+
+!=============================================================================
+
+subroutine close(self)
+class(swd_fft) :: self  ! Object to destruct
+!
+if (allocated(self % kx)) deallocate(self % kx)
+if (allocated(self % ky)) deallocate(self % ky)
+if (allocated(self % k)) deallocate(self % k)
+if (allocated(self % tanhkh)) deallocate(self % tanhkh)
+!
+end subroutine  close
+
+!=============================================================================
 
 end module swd_fft_def

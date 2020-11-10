@@ -91,8 +91,8 @@ contains
     procedure(get_chr),     deferred :: get_chr           ! Extract a specified char parameter
     procedure(close),       deferred :: close             ! Manual destructor
     procedure(elev_fft),    deferred :: elev_fft          ! Surface elevation on a regular grid using FFT 
-    procedure :: x_fft                                    ! x-vector corresponding to output from FFT routines
-    procedure :: y_fft                                    ! y-vector corresponding to output from FFT routines
+    procedure(grad_phi_fft),deferred :: grad_phi_fft      ! Grad phi on a regular grid using FFT 
+    procedure :: xy_fft                                   ! x/y-coordinates corresponding to output from FFT routines
     procedure :: error_raised                             ! Return .true. if error has been signaled
     procedure :: error_id                                 ! Return error id
     procedure :: error_msg                                ! Return error message
@@ -270,6 +270,14 @@ abstract interface
         real(knd), allocatable :: elev(:, :)
     end function elev_fft
 
+    function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+        import
+        class(spectral_wave_data), intent(inout) :: self ! Actual class
+        real(wp), intent(in) :: z
+        integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+        real(knd), allocatable :: grad_phi(:, :, :)
+    end function grad_phi_fft
+
 end interface
 
 contains
@@ -315,14 +323,28 @@ end subroutine error_clear
 
 !==============================================================================
 
-function x_fft(self, nx_fft_in)
+subroutine xy_fft(self, x_fft, y_fft, nx_fft_in, ny_fft_in)
 class(spectral_wave_data), intent(inout) :: self ! Actual class
-integer, optional, intent(in) :: nx_fft_in
-real(knd), allocatable :: x_fft(:)
-character(len=*), parameter :: err_proc = 'spectral_wave_data::x_fft'
-character(len=:), allocatable :: err_msg(:)
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable, intent(out) :: x_fft(:, :), y_fft(:, :)
 
-x_fft = self % fft % x_fft(nx_fft_in)
+real(knd), allocatable :: x_fft_v(:), y_fft_v(:)
+character(len=*), parameter :: err_proc = 'spectral_wave_data::xy_fft'
+character(len=:), allocatable :: err_msg(:)
+integer :: ix, iy
+
+x_fft_v = self % fft % x_fft(nx_fft_in) - self % x0
+y_fft_v = self % fft % y_fft(ny_fft_in) - self % y0
+
+allocate(x_fft(size(x_fft_v), size(y_fft_v)), &
+         y_fft(size(x_fft_v), size(y_fft_v)))
+
+do ix = 1, size(x_fft_v)
+    do iy = 1, size(y_fft_v)
+        x_fft(ix, iy) = x_fft_v(ix)*self % cbeta - y_fft_v(iy)*self % sbeta
+        y_fft(ix, iy) = x_fft_v(ix)*self % sbeta + y_fft_v(iy)*self % cbeta
+    end do
+end do
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]
@@ -331,27 +353,7 @@ if (self % fft % error % raised()) then
                                    err_msg)
 end if
 
-end function x_fft
-
-!==============================================================================
-
-function y_fft(self, ny_fft_in)
-class(spectral_wave_data), intent(inout) :: self ! Actual class
-integer, optional, intent(in) :: ny_fft_in
-real(knd), allocatable :: y_fft(:)
-character(len=*), parameter :: err_proc = 'spectral_wave_data::y_fft'
-character(len=:), allocatable :: err_msg(:)
-
-y_fft = self % fft % y_fft(ny_fft_in)
-
-if (self % fft % error % raised()) then
-    err_msg = [self % fft % error % get_msg()]
-    call self % error % set_id_msg(err_proc, &
-                                   self % fft % error % get_id(), &
-                                   err_msg)
-end if
-
-end function y_fft
+end subroutine xy_fft
 
 !==============================================================================
   

@@ -800,6 +800,7 @@ class SpectralWaveData(object):
         """
         if self._alive is True:
             swdlib.swd_api_close(self.obj)
+            del self.obj
             self._alive = False
 
     def elev_fft(self, nx_fft=-1, ny_fft=-1):
@@ -850,78 +851,85 @@ class SpectralWaveData(object):
         
         return res.T
 
-    def x_fft(self, nx_fft=-1):
-        """Returns the x-grid corresponding to the FFT-based routines *_fft
-        called with the same nx_fft.
+    def grad_phi_fft(self, z, nx_fft=-1, ny_fft=-1):
+        """Calculates grad phi at a regular FFT-grid with
+        dimensions (nx_fft, ny_fft). It is assumed that the current time has 
+        been set using the method :meth:`update_time`.
+
+        Parameters
+        ----------
+        z : float
+            z-coordinate for calculation og grad phi.
+        nx_fft, ny_fft : int, optional
+            Output dimensions.
+
+        Returns
+        -------
+        3D ndarray
+            Grad phi = (u,v,w) on a regular grid.
+
+        Raises
+        ------
+        SwdInputValueError
+            Invalid grid dimensions (nx_fft, ny_fft).
+
+        Examples
+        --------
+        
+
+        """
+        # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
+        CFI_obj = swdlib.swd_api_grad_phi_fft(self.obj, z, nx_fft, ny_fft)    
+        
+        if swdlib.swd_api_error_raised(self.obj):
+            id = swdlib.swd_api_error_get_id(self.obj)
+            msg = swdlib.swd_api_error_get_msg(self.obj).decode()
+            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            if id == 1004:
+                raise SwdInputValueError(msg)
+            else:
+                raise SwdError(msg)
+
+        # array dimensions
+        nx_out = CFI_obj.contents.dim[1].extent
+        ny_out = CFI_obj.contents.dim[2].extent
+
+        data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
+        res = np.ctypeslib.as_array(data_pointer, shape=(ny_out, nx_out, 3)).copy()
+
+        swdlib.swd_api_fft_deallocate(CFI_obj)
+        
+        return np.swapaxes(res, 0, 2)
+
+    def xy_fft(self, nx_fft=-1, ny_fft=-1):
+        """Returns the x and y coordinates of the grid corresponding to the '
+        FFT-based routines *_fft called with the same nx_fft/nx_fft.
 
         Parameters
         ----------
         nx_fft : int, optional
-            Grid dimensions.
-
-        Returns
-        -------
-        ndarray
-            x-values on the FFT-grid.
-
-        Raises
-        ------
-        SwdInputValueError
-            Invalid grid dimension nx_fft.
-
-        Examples
-        --------
-        
-
-        """
-        # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
-        CFI_obj = swdlib.swd_api_x_fft(self.obj, nx_fft)    
-        
-        if swdlib.swd_api_error_raised(self.obj):
-            id = swdlib.swd_api_error_get_id(self.obj)
-            msg = swdlib.swd_api_error_get_msg(self.obj).decode()
-            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
-            if id == 1004:
-                raise SwdInputValueError(msg)
-            else:
-                raise SwdError(msg)
-
-        # array dimensions
-        nx_out = CFI_obj.contents.dim[0].extent
-
-        data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
-        res = np.ctypeslib.as_array(data_pointer, shape=(nx_out, )).copy()
-
-        swdlib.swd_api_fft_deallocate(CFI_obj)
-        
-        return res
-    
-    def y_fft(self, ny_fft=-1):
-        """Returns the y-grid corresponding to the FFT-based routines *_fft
-        called with the same ny_fft.
-
-        Parameters
-        ----------
+            Number of grid points x-direction.
         ny_fft : int, optional
-            Grid dimensions.
+            Number of grid points y-direction.
 
         Returns
         -------
-        ndarray
-            y-values on the FFT-grid.
+        x_fft, y_fft 
+            ndarrays with x- and y-values on the FFT-grid.
 
         Raises
         ------
         SwdInputValueError
-            Invalid grid dimension ny_fft.
+            Invalid grid dimensions nx_fft or ny_fft.
 
         Examples
         --------
         
 
         """
-        # get the fortran-array-object (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
-        CFI_obj = swdlib.swd_api_y_fft(self.obj, ny_fft)    
+        # get the fortran-array objects (see ISO_Fortran_binding.h/ISO_Fortran_binding.py)
+        CFI_obj_x = swdlib.swd_api_x_fft(self.obj, nx_fft, ny_fft)
+        CFI_obj_y = swdlib.swd_api_y_fft(self.obj, nx_fft, ny_fft)
         
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
@@ -933,11 +941,15 @@ class SpectralWaveData(object):
                 raise SwdError(msg)
 
         # array dimensions
-        ny_out = CFI_obj.contents.dim[0].extent
+        nx_out = CFI_obj_x.contents.dim[0].extent
+        ny_out = CFI_obj_y.contents.dim[1].extent
 
-        data_pointer = cast(CFI_obj.contents.base_addr, POINTER(c_double))
-        res = np.ctypeslib.as_array(data_pointer, shape=(ny_out, )).copy()
+        d_point_x = cast(CFI_obj_x.contents.base_addr, POINTER(c_double))
+        d_point_y = cast(CFI_obj_y.contents.base_addr, POINTER(c_double))
+        res_x = np.ctypeslib.as_array(d_point_x, shape=(ny_out, nx_out)).copy()
+        res_y = np.ctypeslib.as_array(d_point_y, shape=(ny_out, nx_out)).copy()
 
-        swdlib.swd_api_fft_deallocate(CFI_obj)
+        swdlib.swd_api_fft_deallocate(CFI_obj_x)
+        swdlib.swd_api_fft_deallocate(CFI_obj_y)
         
-        return res
+        return res_x.T, res_y.T
