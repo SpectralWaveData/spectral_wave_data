@@ -1677,9 +1677,11 @@ endif
 c_fft = Zfun*self % fft % swd_to_fft_coeffs_2D(self % c_cur(:, 0:self % nsumy, 0:self % nsumx))
 phi_x = self % fft % fft_field_2D(iu*self % fft % kx*c_fft, nx_fft_in, ny_fft_in)
 allocate(grad_phi(3, size(phi_x,1), size(phi_x,2)))
-grad_phi(1, :, :) = phi_x
 grad_phi(2, :, :) = self % fft % fft_field_2D(iu*self % fft % ky*c_fft, nx_fft_in, ny_fft_in)
 grad_phi(3, :, :) = self % fft % fft_field_2D(self % fft % k*c_fft, nx_fft_in, ny_fft_in)
+
+grad_phi(1, :, :) = phi_x * self % cbeta - grad_phi(2, :, :) * self % sbeta
+grad_phi(2, :, :) = phi_x * self % sbeta + grad_phi(2, :, :) * self % cbeta
 
 if (self % fft % error % raised()) then
     err_msg = [self % fft % error % get_msg()]

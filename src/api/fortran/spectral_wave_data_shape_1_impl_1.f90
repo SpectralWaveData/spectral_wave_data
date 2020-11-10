@@ -1485,8 +1485,8 @@ endif
 c_fft = Zfun*self % fft % swd_to_fft_coeffs_1D(self % c_cur(0:self % nsumx))
 phi_x = self % fft % fft_field_1D(iu*self % fft % kx*c_fft, nx_fft_in)
 allocate(grad_phi(3, size(phi_x), 1))
-grad_phi(1, :, :) = phi_x
-grad_phi(2, :, :) = 0.0_knd
+grad_phi(1, :, :) = phi_x*self % cbeta
+grad_phi(2, :, :) = phi_x*self % sbeta
 grad_phi(3, :, :) = self % fft % fft_field_1D(self % fft % k*c_fft, nx_fft_in)
 
 if (self % fft % error % raised()) then
