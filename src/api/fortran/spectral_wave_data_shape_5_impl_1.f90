@@ -55,6 +55,7 @@ type, extends(spectral_wave_data) :: spectral_wave_data_shape_5_impl_1
     complex(wp), allocatable :: ct_cur(:,:,:)   ! Spectral ct-values at current time (1dim=1:2, 2dim=0:ny, 3dim=0:nx)
     complex(wp), allocatable :: h_cur(:,:,:)    ! Spectral ct-values at current time (1dim=1:2, 2dim=0:ny, 3dim=0:nx)
     complex(wp), allocatable :: ht_cur(:,:,:)   ! Spectral ht-values at current time (1dim=1:2, 2dim=0:ny, 3dim=0:nx)
+    real(wp), allocatable :: Rfun(:, :), k(:, :)
     type(spectral_interpolation)  :: tpol   ! Temporal interpolation scheme
 contains
     procedure :: close              ! Destructor
@@ -109,6 +110,8 @@ if (allocated(self % c_cur)) deallocate(self % c_cur)
 if (allocated(self % ct_cur)) deallocate(self % ct_cur)
 if (allocated(self % h_cur)) deallocate(self % h_cur)
 if (allocated(self % ht_cur)) deallocate(self % ht_cur)
+if (allocated(self % Rfun)) deallocate(self % Rfun)
+if (allocated(self % k)) deallocate(self % k)
 !
 self % file = '0'
 self % unit = 0
@@ -150,14 +153,13 @@ integer :: i, ix, iy, ios, err_id
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, nx, ny, order, nid, nsteps, nstrip
 real(c_float) :: dkx, dky, dt, grav, lscale, d, magic
-
 character(kind=c_char, len=:), allocatable :: cid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::constructor'
 character(len=250) :: err_msg(5)
 complex(wp) :: fval, dfval
-real(wp) :: dt_tpol
+real(wp) :: dt_tpol, kjx, kjx2, kjy
 complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
@@ -398,6 +400,19 @@ self % ipt(:,2) = [2,3,4,1]
 self % ipt(:,3) = [3,4,1,2]
 self % ipt(:,4) = [4,1,2,3]
 
+! precalculate k and Rfun
+allocate(self % k(0:self % nsumy, 0:self % nsumx))
+allocate(self % Rfun(0:self % nsumy, 0:self % nsumx))
+do ix = 0, self % nsumx
+    kjx = ix * self % dkx
+    kjx2 = kjx * kjx
+    do iy = 0, self % nsumy
+        kjy = iy * self % dky
+        self % k(iy, ix) = sqrt(kjx2 + kjy*kjy)
+        self % Rfun(iy, ix) = tanh(self % k(iy, ix) * self % d)
+    end do
+end do
+!
 return
 !
 98 continue
@@ -746,8 +761,8 @@ real(knd), intent(in) :: x,y,z ! Position application program
 real(knd)             :: res   ! Potential at (x,y,z)
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, kjxjy, zwp, reswp, kjx2
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: xswd, yswd, Zfun, zwp, reswp
+real(wp) :: Ufun, Sfun, Vfun, Tfun
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -760,24 +775,21 @@ Xfun = conjg(kappa1)
 do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
-    kjx2 = (jx * self % dkx)**2
     do jy = 0, self % nsumy
         Yfun = kappa2 * Yfun
         Cfun1 = self % c_cur(1,jy,jx) * Yfun + &
                 self % c_cur(2,jy,jx) * conjg(Yfun)
-        kjxjy = sqrt(kjx2 + (jy * self % dky)**2)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
         end if
@@ -807,8 +819,8 @@ real(knd),       intent(in) :: x,y,z ! Position application program
 real(knd)                   :: res   ! Euler time derivative of potential at (x,y,z)
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, kjxjy, zwp, reswp, kjx2
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: xswd, yswd, Zfun, zwp, reswp
+real(wp) :: Ufun, Sfun, Vfun, Tfun
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Ctfun1
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -821,24 +833,21 @@ Xfun = conjg(kappa1)
 do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
-    kjx2 = (jx * self % dkx)**2
     do jy = 0, self % nsumy
         Yfun = kappa2 * Yfun
         Ctfun1 = self % ct_cur(1,jy,jx) * Yfun +   &
                  self % ct_cur(2,jy,jx) * conjg(Yfun)
-        kjxjy = sqrt(kjx2 +(jy * self % dky)**2)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
         end if
@@ -857,9 +866,9 @@ real(knd), intent(in) :: x,y,z  ! Position application program
 real(knd)             :: res(3) ! Particle velocity at (x,y,z)
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, Zfun_z, kjxjy
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
-real(wp) :: phi_xswd, phi_yswd, phi_zswd, kjx, kjy, kjx2, zwp
+real(wp) :: xswd, yswd, Zfun, Zfun_z
+real(wp) :: Ufun, Sfun, Vfun, Tfun
+real(wp) :: phi_xswd, phi_yswd, phi_zswd, kjx, kjy,  zwp
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1, Cfun2, CfunA, CfunB
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -876,26 +885,23 @@ do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
     kjx = jx * self % dkx
-    kjx2 = kjx * kjx
     do jy = 0, self % nsumy
         kjy = jy * self % dky
-        kjxjy = sqrt(kjx2 + kjy*kjy)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
-            Zfun_z = Sfun * kjxjy
+            Zfun_z = Sfun * self % k(jy, jx)
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
-            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * kjxjy
+            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * self % k(jy, jx)
         end if
         Yfun = kappa2 * Yfun
         CfunA = self % c_cur(1,jy,jx) * Yfun
@@ -927,10 +933,10 @@ real(knd)                   :: res(6) ! Second order gradients of potential at (
                                       ! res(6) = d^2(potential) / dz dz
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, Zfun_z, kjxjy
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: xswd, yswd, Zfun, Zfun_z
+real(wp) :: Ufun, Sfun, Vfun, Tfun
 real(wp) :: phi_xx_swd, phi_xy_swd, phi_xz_swd, phi_yy_swd, phi_yz_swd, phi_zz_swd
-real(wp) :: kjx, kjy, kjx2, zwp, cc, cs, ss
+real(wp) :: kjx, kjy,  zwp, cc, cs, ss
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1, Cfun2, CfunA, CfunB
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -950,26 +956,23 @@ do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
     kjx = jx * self % dkx
-    kjx2 = kjx * kjx
     do jy = 0, self % nsumy
         kjy = jy * self % dky
-        kjxjy = sqrt(kjx2 + kjy*kjy)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
-            Zfun_z = Sfun * kjxjy
+            Zfun_z = Sfun * self % k(jy, jx)
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
-            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * kjxjy
+            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * self % k(jy, jx)
         end if
         Yfun = kappa2 * Yfun
         CfunA = self % c_cur(1,jy,jx) * Yfun
@@ -981,7 +984,7 @@ do jx = 0, self % nsumx
         phi_xz_swd = phi_xz_swd + kjx * Cfun1 % im * Zfun_z
         phi_yy_swd = phi_yy_swd - kjy*kjy * Cfun1 % re * Zfun
         phi_yz_swd = phi_yz_swd + kjy * Cfun2 % im * Zfun_z
-        phi_zz_swd = phi_zz_swd + kjxjy*kjxjy * Cfun1 % re * Zfun
+        phi_zz_swd = phi_zz_swd + self % k(jy, jx)*self % k(jy, jx) * Cfun1 % re * Zfun
     end do
 end do
 cc = self % cbeta * self % cbeta
@@ -1004,9 +1007,9 @@ real(knd), intent(in) :: x,y,z  ! Position application program
 real(knd)             :: res(3) ! Euler acceleration at (x,y,z)
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, Zfun_z, kjxjy
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
-real(wp) :: phi_xtswd, phi_ytswd, phi_ztswd, kjx, kjy, kjx2, zwp
+real(wp) :: xswd, yswd, Zfun, Zfun_z
+real(wp) :: Ufun, Sfun, Vfun, Tfun
+real(wp) :: phi_xtswd, phi_ytswd, phi_ztswd, kjx, kjy,  zwp
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1, Cfun2, CfunA, CfunB
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -1023,26 +1026,23 @@ do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
     kjx = jx * self % dkx
-    kjx2 = kjx * kjx
     do jy = 0, self % nsumy
         kjy = jy * self % dky
-        kjxjy = sqrt(kjx2 + kjy*kjy)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
-            Zfun_z = Sfun * kjxjy
+            Zfun_z = Sfun * self % k(jy, jx)
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
-            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * kjxjy
+            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * self % k(jy, jx)
         end if
         Yfun = kappa2 * Yfun
         CfunA = self % ct_cur(1,jy,jx) * Yfun
@@ -1088,9 +1088,9 @@ real(knd), intent(in) :: x,y,z  ! Position application program
 real(knd)             :: res    ! Fully nonlinear pressure
 !
 integer :: jx, jy
-real(wp) :: xswd, yswd, Zfun, Zfun_z, kjxjy
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun
-real(wp) :: phi_t, phi_xswd, phi_yswd, phi_zswd, kjx, kjy, kjx2, zwp
+real(wp) :: xswd, yswd, Zfun, Zfun_z
+real(wp) :: Ufun, Sfun, Vfun, Tfun
+real(wp) :: phi_t, phi_xswd, phi_yswd, phi_zswd, kjx, kjy,  zwp
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1, Cfun2, CfunA, CfunB, Ctfun
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -1107,26 +1107,23 @@ do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
     kjx = jx * self % dkx
-    kjx2 = kjx * kjx
     do jy = 0, self % nsumy
         kjy = jy * self % dky
-        kjxjy = sqrt(kjx2 + kjy*kjy)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
-            Zfun_z = Sfun * kjxjy
+            Zfun_z = Sfun * self % k(jy, jx)
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
-            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * kjxjy
+            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * self % k(jy, jx)
         end if
         Yfun = kappa2 * Yfun
         CfunA = self % c_cur(1,jy,jx) * Yfun
@@ -1154,9 +1151,9 @@ real(knd),        intent(in) :: x,y,z  ! Position application program
 character(len=*), intent(in) :: csv    ! New output file
 !
 integer :: j, jx, jy, lucsv
-real(wp) :: xswd, yswd, Zfun, kjxjy, elev, phi_x, phi_y, phi_z, prs
-real(wp) :: Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phi_t, phi_xswd, phi_yswd, phi_zswd, kjx, kjy, kjx2, zwp
+real(wp) :: xswd, yswd, Zfun, elev, phi_x, phi_y, phi_z, prs
+real(wp) :: Ufun, Sfun, Vfun, Tfun, Zfun_z
+real(wp) :: phi_t, phi_xswd, phi_yswd, phi_zswd, kjx, kjy,  zwp
 complex(wp) :: kappa1, kappa2, Xfun, Yfun, Cfun1, Cfun2
 complex(wp) :: CfunA, CfunB, Ctfun, Hfun1
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::convergence'
@@ -1194,26 +1191,23 @@ do jx = 0, self % nsumx
     Xfun = kappa1 * Xfun
     Yfun = conjg(kappa2)
     kjx = jx * self % dkx
-    kjx2 = kjx * kjx
     do jy = 0, self % nsumy
         kjy = jy * self % dky
-        kjxjy = sqrt(kjx2 + kjy*kjy)
         if (zwp > 0.0_wp .and. self % norder > 0) then
-            Sfun = SfunTaylor(zwp, kjxjy, self % norder)
-            Tfun = TfunTaylor(zwp, kjxjy, self % norder)
+            Sfun = SfunTaylor(zwp, self % k(jy, jx), self % norder)
+            Tfun = TfunTaylor(zwp, self % k(jy, jx), self % norder)
         else
-            Sfun = exp(zwp * kjxjy)
+            Sfun = exp(zwp * self % k(jy, jx))
             Tfun = 1.0_wp / Sfun
         endif
-        Rfun = tanh(kjxjy * self % d)
-        if (1.0_wp - Rfun < Rfun_eps) then
+        if (1.0_wp - self % Rfun(jy, jx) < Rfun_eps) then
             Zfun = Sfun
-            Zfun_z = Sfun * kjxjy
+            Zfun_z = Sfun * self % k(jy, jx)
         else
-            Ufun = (1.0_wp + Rfun) * 0.5_wp
+            Ufun = (1.0_wp + self % Rfun(jy, jx)) * 0.5_wp
             Vfun = 1.0_wp - Ufun
             Zfun = Ufun * Sfun + Vfun * Tfun
-            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * kjxjy
+            Zfun_z = (Ufun * Sfun - Vfun * Tfun) * self % k(jy, jx)
         end if
         Yfun = kappa2 * Yfun
         CfunA = self % c_cur(1,jy,jx) * Yfun
