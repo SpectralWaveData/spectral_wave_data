@@ -9,11 +9,15 @@ Symbols follow closely the definitions in the :doc:`theory<theory>` section.
 
   This section is not relevant for programmers making
   :doc:`application programs <programming_application_programs>`. The API
-  automatically takes care of all file handling. However, when
-  making :doc:`wave generators <programming_wave_generators>`, the details
-  described below needs to be understood for your relevant shape class
-  as defined in the :doc:`theory<theory>` section.
+  automatically takes care of all file handling.
 
+.. note::
+
+  For making :doc:`wave generators <programming_wave_generators>`, the details
+  described below needs to be understood, but only for your relevant shape class(es)
+  as defined in the :doc:`theory<theory>` section. Utility functions for writing
+  SWD files are provided in the
+  :doc:`programming wave generators<programming_wave_generators>` section.
 
 .. note::
 

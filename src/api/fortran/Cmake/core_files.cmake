@@ -20,8 +20,21 @@ set(SRC_CORE
   ${DIR_SRC_API_F}/swd_write_shape_6.f90
   ${DIR_SRC_API_F}/swd_version.f90)
 
-# Bundle the Intel compiler libraries when compiling shared libraries on Linux
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel" AND UNIX)
-    message("SWD: enabling -static-intel for .so files")
-    set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} -static-intel")
+# Bundle the Intel compiler libraries when compiling shared libraries
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+    if (UNIX)
+        message("SWD: enabling -static-intel for .so files")
+        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} -static-intel")
+    endif()
+    if (WIN32)
+        message("SWD: enabling /static for .lib files")
+        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} /libs:static /threads")
+    endif()
 endif()
+
+
+# Bundle the Intel compiler libraries when compiling shared libraries on Linux
+#if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel" AND UNIX)
+#    message("SWD: enabling -static-intel for .so files")
+#    set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} -static-intel")
+#endif()

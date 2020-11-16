@@ -108,11 +108,12 @@ and still enjoy the benefits of the open API.
 Will there be FFT based evaluations?
 ------------------------------------
 
-For a small set of specific features, like global grid evaluation of surface elevation, there will be
+Yes, for a set of specific features, like global grid evaluation of surface elevation, there will be
 FFT based methods. Different API and implementations are considered.
+The first version with such features is expected to be 1.1.0.
 
 For other kinematics the implemented recursive schemes are superior with respect to speed
-and accuracy when doing evaluation at arbitrary locations.
+and accuracy when doing exact evaluation at arbitrary locations.
 
 Why Fortran with C/C++/Python wrappers?
 ---------------------------------------

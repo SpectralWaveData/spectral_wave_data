@@ -4,6 +4,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+import sys
+import subprocess
 from struct import pack
 
 import sympy as sp
@@ -237,3 +239,16 @@ class Shape2:
             dump(ctf, t_swd)
 
         out.close()
+
+    def check_swd_meta(self, file_swd, n):
+        if sys.version_info >= (3, 5):
+            result = subprocess.run(["swd_meta", file_swd], capture_output=True)
+            assert result.returncode == 0
+            text = str(result.stdout)
+
+            def check(tag, val):
+                text_ok = "%-8s %s" % (tag + ':', val)
+                assert text_ok in text, ("missing: %s" % text_ok)
+
+            check("shp", 2)
+            check("n", n)

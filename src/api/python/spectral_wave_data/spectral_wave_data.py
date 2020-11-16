@@ -13,8 +13,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
-
 __all__ = ['SpectralWaveData', 'SwdError', 'SwdFileCantOpenError',
            'SwdFileBinaryError', 'SwdFileDataError', 'SwdInputValueError',
            'SwdAllocateError']
@@ -70,7 +68,7 @@ class SpectralWaveData(object):
 
     """
 
-    def __init__(self, file_swd, x0, y0, t0, beta, rho=1025.0, nsumx=-1, 
+    def __init__(self, file_swd, x0=0.0, y0=0.0, t0=0.0, beta=0.0, rho=1025.0, nsumx=-1,
                  nsumy=-1, impl=0, ipol=0, norder=0, dc_bias=False):
         """Constructor
 
@@ -78,12 +76,12 @@ class SpectralWaveData(object):
         ----------
         file_swd : str
             The name of the swd file defining the ocean waves.
-        x0, y0 : float
+        x0, y0 : float, optional
             The origin of the application wave coordinate system relative to the
             SWD coordinate system. [m]
-        t0 : float
+        t0 : float, optional
             The SWD time corresponding to t=0 in the application simulation. [s]
-        beta : float
+        beta : float, optional
             Rotation of the SWD x-axis relative to the application x-axis. [deg]
         rho : float, optional
             Density of water. [kg/m^3] (Only relevant for pressure calculations)
@@ -150,6 +148,23 @@ class SpectralWaveData(object):
             else:
                 raise SwdError(msg)
         self._alive = True
+
+    def __enter__(self):
+        """Allow with statement.
+
+        Examples
+        --------
+        >>> with SpectralWaveData("my.swd") as swd:
+        ...     swd.update_time(0.0)
+        ...     swd.elev(0.0, 0.0)
+        >>> print("swd object is closed!")
+
+        """
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        """Safe exit from with statement. Exceptions are raised if relevant"""
+        self.close()
 
     def update_time(self, time):
         """Set the current time for all kinematic calculations.
@@ -634,7 +649,7 @@ class SpectralWaveData(object):
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
             msg = swdlib.swd_api_error_get_msg(self.obj).decode()
-            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            swdlib.swd_api_error_clear(self.obj)  # To simplify safe recovery...
             if id == 1001:
                 raise SwdFileCantOpenError(msg)
             else:
@@ -675,7 +690,7 @@ class SpectralWaveData(object):
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
             msg = swdlib.swd_api_error_get_msg(self.obj).decode()
-            swdlib.swd_api_error_clear(self.obj) # To simplify safe recovery...
+            swdlib.swd_api_error_clear(self.obj)  # To simplify safe recovery...
             if id == 1001:
                 raise SwdFileCantOpenError(msg)
             elif id == 1003:

@@ -17,14 +17,14 @@ def main():
     file_swd = sys.argv[-1]
 
     try:
-        swd = SpectralWaveData(file_swd, x0=0.0, y0=0.0, t0=0.0, beta=0.0)
+        swd = SpectralWaveData(file_swd)
     except SwdFileCantOpenError as e:
         print("Not able to open: %s" % file_swd)
         sys.exit()
     except SwdFileBinaryError as e:
         print("This SWD file don't have the correct binary convention: %s" % file_swd)
         sys.exit()
-    except SwdFileBinaryError as e:
+    except SwdFileDataError as e:
         print("This file don't look like a SWD-file: %s" % file_swd)
         sys.exit()
 

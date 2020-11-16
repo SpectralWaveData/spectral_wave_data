@@ -39,8 +39,11 @@ imported and applied in application programs and scripts.
 If no try/except block is applied, the application program will abort and
 print the exception and backtrace as a normal Python crash.
 
-The only other associated class methods that may throw exceptions are :meth:`update_time`,
-:meth:`convergence`, :meth:`strip` and :meth:`get`.
+The only other associated class methods that may throw exceptions are
+:meth:`~spectral_wave_data.SpectralWaveData.update_time`,
+:meth:`~spectral_wave_data.SpectralWaveData.convergence`,
+:meth:`~spectral_wave_data.SpectralWaveData.strip` and
+:meth:`~spectral_wave_data.SpectralWaveData.get`.
 
 .. list-table::
    :widths: 25 75
@@ -109,27 +112,29 @@ For convenience this Python wheel package includes the script :file:`swd_meta`
 listing the relevant metadata for a given SWD-file. It runs on Windows and Linux.
 
 In a terminal window with access to your installed **spectral_wave_data** package you can
-invoke it like in this example where :file:`my.swd` is the name of the actual SWD-file:
+invoke it like in this example where :file:`my.swd` is the name of the actual SWD-file.
 
-> swd_meta my.swd
-version: 1.0.0
-prog:    raschii-1.0.4
-date:    2020:10:22 19:57:55
-fmt:     100
-shp:     2
-amp:     1
-tmax:    6.3000000938773155
-dt:      0.10000000149011612
-nsteps:  64
-nstrip:  0
-order:   -1
-d:       32.0
-n:       50
-sizex:   220.00000561733003
-lmax:    220.00000561733003
-lmin:    4.400000112346601
-dk:      0.028559932485222816
-cid:     {'model': 'Fenton', 'T': 12.792885811907514, 'height': 18.5, 'depth': 32.0, 'N': 50, 'air': 'NoneType', 'g': 9.81, 'c': 17.19705805512825, 'relax': 0.5}
+.. code-block:: console
+
+   > swd_meta my.swd
+   version: 1.0.0
+   prog:    raschii-1.0.4
+   date:    2020:10:22 18:37:55
+   fmt:     100
+   shp:     2
+   amp:     1
+   tmax:    6.3000000938773155
+   dt:      0.10000000149011612
+   nsteps:  64
+   nstrip:  0
+   order:   -1
+   d:       32.0
+   n:       50
+   sizex:   220.00000561733003
+   lmax:    220.00000561733003
+   lmin:    4.400000112346601
+   dk:      0.028559932485222816
+   cid:     {'model': 'Fenton', 'T': 12.792885811907514, 'height': 18.5, 'depth': 32.0, 'N': 50, 'air': 'NoneType', 'g': 9.81, 'c': 17.19705805512825, 'relax': 0.5}
 
 
 --------------

@@ -139,7 +139,7 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_2_impl_1) :: self  ! Object to construct
 !
-integer :: i, ios
+integer :: i, ios, err_id
 
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, n, order, nid, nsteps, nstrip
@@ -172,10 +172,10 @@ self % x0 = x0
 self % y0 = y0
 self % file = file
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -343,15 +343,19 @@ end if
 ! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
-    inquire(self % unit, pos=self % ipos0) 
+    inquire(self % unit, pos=self % ipos0)
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
     read(self % unit, end=98, err=99) h(:,2)
     read(self % unit, end=98, err=99) ht(:,2)
     if (self % amp < 3) then
         read(self % unit, end=98, err=99) c(:,2)
         read(self % unit, end=98, err=99) ct(:,2)
-    else
-        c(:,2) = czero_c
-        ct(:,2) = czero_c
     end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
@@ -380,7 +384,7 @@ err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
 return
-
+!
 99 continue
 err_msg(1) = 'Error when reading data from file:'
 err_msg(2) = self % file
@@ -637,6 +641,27 @@ end function SfunTaylor
 
 !==============================================================================
 
+function TfunTaylor(zwp, kjxjy, order) result(res) ! Value of Tfun based on Taylor expansion
+real(wp),  intent(in) :: zwp   ! z-position (>0)
+real(wp),  intent(in) :: kjxjy ! Actual k
+integer,   intent(in) :: order ! expansion order
+real(wp)              :: res
+!
+integer :: p
+real(wp) :: ap1, apj
+!
+ap1 = - kjxjy * zwp
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1
+    apj = apj * ap1 / p
+    res = res + apj
+end do
+!
+end function TfunTaylor
+
+!==============================================================================
+
 function phi(self, x, y, z) result(res)
 class(spectral_wave_data_shape_2_impl_1), intent(in) :: self  ! Actual class
 real(knd), intent(in) :: x,y,z ! Position application program
@@ -659,8 +684,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -668,7 +695,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % c_cur(j) * Xfun) * Zfun
@@ -700,8 +726,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -709,7 +737,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zhfun = Ufun * Sfun - Vfun * Tfun
     end if
     res = res + aimag(self % c_cur(j) * Xfun) * Zhfun
@@ -741,8 +768,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -750,7 +779,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % ct_cur(j) * Xfun) * Zfun
@@ -786,8 +814,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -796,7 +826,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -846,8 +875,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -856,7 +887,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -902,8 +932,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -912,7 +944,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -975,8 +1006,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -985,7 +1018,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -1048,8 +1080,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -1058,7 +1092,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if

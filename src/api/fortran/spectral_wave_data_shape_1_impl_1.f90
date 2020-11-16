@@ -136,7 +136,7 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_1_impl_1) :: self  ! Object to construct
 !
-integer :: i, ios
+integer :: i, ios, err_id
 
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, n, order, nid, nsteps, nstrip
@@ -147,6 +147,7 @@ character(kind=c_char, len=20) :: cdate
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_1_impl_1::constructor'
 character(len=250) :: err_msg(5)
 complex(wp) :: fval, dfval
+real(wp) :: dt_tpol
 complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
@@ -168,10 +169,10 @@ self % x0 = x0
 self % y0 = y0
 self % file = file
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -275,10 +276,16 @@ else
     self % nsumx = n
 end if
 
-if (present(ipol)) then
-    call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
+if (self % nsteps == 1) then
+    dt_tpol = 1.0_wp
 else
-    call self % tpol % construct(ischeme=0, delta_t=self % dt, ierr=i)
+    dt_tpol = self % dt
+end if
+
+if (present(ipol)) then
+    call self % tpol % construct(ischeme=ipol, delta_t=dt_tpol, ierr=i)
+else
+    call self % tpol % construct(ischeme=0, delta_t=dt_tpol, ierr=i)
 end if
 self % ipol = self % tpol % ischeme
 if (i /= 0) then
@@ -292,7 +299,7 @@ end if
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = self % dt * (self % nsteps - 1) - self % t0
-if (self % tmax <= self % dt) then
+if (self % tmax < self % dt) then
     write(err_msg(1),'(a,a)') 'Input file: ', trim(self % file)
     write(err_msg(2),'(a)') "Constructor parameter t0 is too large."
     write(err_msg(3),'(a,f0.4)') 't0 = ', self % t0
@@ -317,60 +324,37 @@ if (i /= 0) then
     return
 end if
 
-! The first three time steps are put into memory.
+! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
-    inquire(self % unit, pos=self % ipos0) 
-    do i = 2, 4
-        read(self % unit, end=98, err=99) h(:,i)
-        read(self % unit, end=98, err=99) ht(:,i)
-        if (self % amp < 3) then
-            read(self % unit, end=98, err=99) c(:,i)
-            read(self % unit, end=98, err=99) ct(:,i)
-        else
-            c(:,i) = czero_c
-            ct(:,i) = czero_c
-        end if
-    end do
+    inquire(self % unit, pos=self % ipos0)
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
+    read(self % unit, end=98, err=99) h(:,2)
+    read(self % unit, end=98, err=99) ht(:,2)
+    if (self % amp < 3) then
+        read(self % unit, end=98, err=99) c(:,2)
+        read(self % unit, end=98, err=99) ct(:,2)
+    end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
     ! Storage fortran units per complex (c_float based)
     if (self % amp == 3) then
-        self % size_complex = (ipos2 - ipos1) / (3 * 2 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (2 * (self%n + 1))
     else
-        self % size_complex = (ipos2 - ipos1) / (3 * 4 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (4 * (self%n + 1))
     end if
-    self % size_step = (ipos2 - ipos1) / 3  ! three time steps
-    ! We apply padding for storing data at t= -dt
-    do concurrent (i = 0 : self % nsumx)
-        ! Potential and d/dt of potential
-        call self % tpol % pad_left(          &
-                    cmplx(c(i,2), kind=wp),   &
-                    cmplx(c(i,3), kind=wp),   &
-                    cmplx(c(i,4), kind=wp),   &
-                    cmplx(ct(i,2), kind=wp),  &
-                    cmplx(ct(i,3), kind=wp),  &
-                    cmplx(ct(i,4), kind=wp),  &
-                    fval, dfval)
-        c(i,1) = fval
-        ct(i,1) = dfval
-        ! Wave height and d/dt of wave height
-        call self % tpol % pad_left(          &
-                    cmplx(h(i,2), kind=wp),   &
-                    cmplx(h(i,3), kind=wp),   &
-                    cmplx(h(i,4), kind=wp),   &
-                    cmplx(ht(i,2), kind=wp),  &
-                    cmplx(ht(i,3), kind=wp),  &
-                    cmplx(ht(i,4), kind=wp),  &
-                    fval, dfval)
-        h(i,1) = fval
-        ht(i,1) = dfval
-    end do
+    self % size_step = (ipos2 - ipos1)
 
 end associate
-self % istp = 3  ! The most recent physical step in memory
+self % istp = 1  ! The most recent physical step in memory
 
-self % icur = 1  ! The column to store next data. Cycles with repetitons from 1 to 4
+self % icur = 3  ! The column to store next data. Cycles with repetitons from 1 to 4
 ! self % ipt(1:4, icur) represent i-1, i, i+1 and i+2 in the interpolation scheme
 self % ipt(:,1) = [1,2,3,4]
 self % ipt(:,2) = [2,3,4,1]
@@ -439,11 +423,17 @@ end if
 ! We need to store the 4 time steps: istp_min, istp_min+1, ..., istp_max in memory
 ! tswd=0.0 corresponds to time step 1. The last step in file is nsteps.
 ! Minimum time step in memory: =0 indicates need of padding below tswd = 0.0
-istp_min = int((self % tswd - teps) / self % dt)  
-! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
-istp_max = istp_min + 3
-!
-delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0]
+if (self % nsteps == 1) then
+    istp_min = 1
+    delta = 0.0_wp
+    istp_max = 1
+    self % icur = 1
+else
+    istp_min = int((self % tswd - teps) / self % dt)
+    delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0] 
+    ! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
+    istp_max = istp_min + 3
+end if  
 
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
           ht => self % ht_win, ic => self % icur, ip => self % ipt)
@@ -531,7 +521,7 @@ associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
         end if
     end do
 
-    if (imove < 0 .and. istp_min == 0) then
+    if (istp_min == 0) then
         ! Padding in first column because tswd < dt_swd. 
         do concurrent (i = 0 : self % nsumx)
             ! Potential and d/dt of potential

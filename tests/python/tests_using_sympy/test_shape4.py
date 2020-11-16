@@ -78,6 +78,7 @@ def make_waves(request, tmp_path_factory):
     swd_anal.tmpdir = str(tmp_path_factory.mktemp("swd"))
     file_swd = os.path.join(swd_anal.tmpdir, "shp_4.swd")
     swd_anal.write_swd(file_swd, dt=0.1, nsteps=11)
+    swd_anal.check_swd_meta(file_swd, nx, ny)
     # gfortran-9 does not allow a file to be concurrently opened twice...
     file_swd_copy = os.path.join(swd_anal.tmpdir, "shp_4_copy.swd")
     shutil.copy(file_swd, file_swd_copy)
@@ -264,6 +265,10 @@ def test_waves(make_waves):
             dt_swd = swd.get('dt')
             assert isinstance(dt_swd, float)
             assert math.isclose(dt_swd, 0.1, rel_tol=1e-5)
+
+            dc_bias = swd["dc_bias"]
+            assert isinstance(dc_bias, bool)
+            assert dc_bias is True
 
             cid = swd.get('cid')
             assert isinstance(cid, str)

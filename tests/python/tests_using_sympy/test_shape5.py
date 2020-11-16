@@ -82,6 +82,7 @@ def make_waves(request, tmp_path_factory):
     swd_anal.tmpdir = str(tmp_path_factory.mktemp("swd"))
     file_swd = os.path.join(swd_anal.tmpdir, "shp_5.swd")
     swd_anal.write_swd(file_swd, dt=0.1, nsteps=11)
+    swd_anal.check_swd_meta(file_swd, nx, ny)
     swd_nums = []
     #for impl in [1, 2]:  # Later we will also implement impl=2
     for impl in [1]:
@@ -261,6 +262,10 @@ def test_waves(make_waves):
             dt_swd = swd.get('dt')
             assert isinstance(dt_swd, float)
             assert math.isclose(dt_swd, 0.1, rel_tol=1e-5)
+
+            dc_bias = swd["dc_bias"]
+            assert isinstance(dc_bias, bool)
+            assert dc_bias is True
 
             cid = swd.get('cid')
             assert isinstance(cid, str)
