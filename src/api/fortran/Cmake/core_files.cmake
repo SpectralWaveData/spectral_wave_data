@@ -22,21 +22,25 @@ set(SRC_CORE
   ${DIR_SRC_API_F}/swd_fft.f90
   ${DIR_SRC_API_F}/swd_fft_fftw3.f90)
 
-# Find FFTW libraries
-find_path (FFTW_INCLUDE_DIRS fftw3.f03)
-message(STATUS "FFTW_INCLUDE_DIRS: ${FFTW_INCLUDE_DIRS}")
-INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIRS})
-
 # Bundle the Intel compiler libraries when compiling shared libraries
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+    get_filename_component(COMP_PATH ${CMAKE_Fortran_COMPILER} DIRECTORY)
+    set(MKLROOT "${COMP_PATH}/../mkl")
+    message(STATUS "MKLROOT: ${MKLROOT}")
+    INCLUDE_DIRECTORIES(${MKLROOT}/include/fftw/)
+    message(STATUS "FFTW_INCLUDE_DIRS: ${MKLROOT}/include/fftw/")
     if (UNIX)
         message("SWD: enabling -static-intel for .so files")
-        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} -static-intel")
+        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl -static-intel")
     endif()
     if (WIN32)
         message("SWD: enabling /static for .lib files")
-        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} /libs:static /threads")
+        set(CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS "${CMAKE_SHARED_LIBRARY_CREATE_Fortran_FLAGS} mkl_intel_lp64.lib mkl_sequential.lib mkl_core.lib /libs:static /threads")
     endif()
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU" AND UNIX)
+    find_path (FFTW_INCLUDE_DIRS fftw3.f03)
+    message(STATUS "FFTW_INCLUDE_DIRS: ${FFTW_INCLUDE_DIRS}")
+    INCLUDE_DIRECTORIES(${FFTW_INCLUDE_DIRS})
 endif()
 
 
