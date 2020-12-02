@@ -29,7 +29,7 @@ public :: ok_swd_magic_number    ! Return .true. if magic number is correct
 !
 !##############################################################################
 
-!                     King Harald V was borned 37.0221
+!                     King Harald V was born 1937.02.21
 real(c_float), parameter :: swd_magic_number = 37.0221_c_float
 
 contains
@@ -41,7 +41,7 @@ integer,           intent(out) :: newunit ! Associated file unit number (output)
 character(len=*),  intent(in)  :: file    ! Name of SWD file to open with correct endian
 character(len=*),  intent(in)  :: status  ! 'new', 'replace' or 'old'
 logical,           intent(in)  :: as_little_endian ! True if little_endian is applied
-integer,           intent(out) :: iostat  ! =0 if succefull open statement
+integer,           intent(out) :: iostat  ! =0 if successful open statement
 !
 integer :: lu
 character(len=5) :: action
@@ -83,23 +83,26 @@ end subroutine open_swd_file
 
 !==============================================================================
 
-subroutine swd_validate_binary_convention(file_swd, msg)
+subroutine swd_validate_binary_convention(file_swd, err_id, msg)
 character(len=*), intent(in)  :: file_swd ! Name of actual SWD file.
+integer,          intent(out) :: err_id   ! Error code (0 if no errors)
 character(len=*), intent(out) :: msg      ! Error message. Empty if no errors.
 !
 integer :: lu, ios
 real(c_float) :: value
 real(c_double) :: dvalue
 !
+err_id = 0
 ! SWD should be little_endian...
 call open_swd_file(newunit=lu, file=file_swd, status='old', &
                    as_little_endian=.true., iostat=ios)
 if (ios /= 0) then
+    err_id = 1001
     msg = "Not able to open SWD file."
     return
 end if
 
-read(lu) value
+read(lu, end=98, err=99) value
 close(lu)
 
 if (ok_swd_magic_number(value)) then
@@ -108,36 +111,53 @@ else
     ! Try big endian...
     call open_swd_file(newunit=lu, file=file_swd, status='old', &
                        as_little_endian=.false., iostat=ios)
-    read(lu) value
+    read(lu, end=98, err=99) value
     close(lu)
     if (ok_swd_magic_number(value)) then
+        err_id = 1002
         msg = "This SWD file is written in 'big_endian' byte convention. "// &
               "It should be in 'little_endian'."
     else
         ! Could it be double precision in SWD file?
         call open_swd_file(newunit=lu, file=file_swd, status='old', &
                            as_little_endian=.true., iostat=ios)
-        read(lu) dvalue
+        read(lu, end=98, err=99) dvalue
         close(lu)
         if (ok_swd_magic_number(real(dvalue, c_float))) then
-            msg = "This SWD file seems to written using double precision. "// &
+            err_id = 1002
+            msg = "This SWD file seems to apply double precision. "// &
                   "It should be in single precision."
         else
             ! Try big endian using double...
             call open_swd_file(newunit=lu, file=file_swd, status='old', &
                                as_little_endian=.false., iostat=ios)
-            read(lu) dvalue
+            read(lu, end=98, err=99) dvalue
             close(lu)
             if (ok_swd_magic_number(real(dvalue, c_float))) then
-                msg = "This SWD file seems to written using double precision and big " // &
+                err_id = 1002
+                msg = "This SWD file seems to apply double precision and big " // &
                       "endian. It should be in single precision and little endian."
             else
+                err_id = 1003
                 msg = "This SWD file has the wrong initial magic number."
             end if
         end if
     end if
 end if
 !
+return
+!
+98 continue
+close(lu)
+err_id = 1003
+msg = "End of file when reading header (magic number)"
+return
+!
+99 continue
+close(lu)
+err_id = 1003
+msg = "Error when reading header (magic number)"
+
 end subroutine swd_validate_binary_convention
 
 !==============================================================================

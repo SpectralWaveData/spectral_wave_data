@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -81,6 +82,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_5_impl_1
 
 interface spectral_wave_data_shape_5_impl_1
@@ -88,6 +90,7 @@ interface spectral_wave_data_shape_5_impl_1
 end interface
 
 real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+complex(wp), parameter :: iu = cmplx(0.0_wp, 1.0_wp, wp)
 real(wp), parameter :: Rfun_eps = 100.0_wp * epsilon(1.0_wp)
 
 contains
@@ -98,6 +101,8 @@ subroutine close(self)
 class(spectral_wave_data_shape_5_impl_1) :: self  ! Object to destruct
 !
 logical opened
+!
+call self % fft % close()
 !
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
@@ -147,17 +152,18 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_5_impl_1) :: self  ! Object to construct
 !
-integer :: i, ix, iy, ios
+integer :: i, ix, iy, ios, err_id
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, nx, ny, order, nid, nsteps, nstrip
 real(c_float) :: dkx, dky, dt, grav, lscale, d, magic
-complex(wp) :: fval, dfval
 character(kind=c_char, len=:), allocatable :: cid
 character(kind=c_char, len=30) :: cprog
 character(kind=c_char, len=20) :: cdate
-complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::constructor'
 character(len=250) :: err_msg(5)
+complex(wp) :: fval, dfval
+real(wp) :: dt_tpol
+complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
 !
@@ -178,10 +184,10 @@ self % x0 = x0
 self % y0 = y0
 self % file = file
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -311,10 +317,19 @@ else
     self % nsumy = ny
 end if
 
-if (present(ipol)) then
-    call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, self % nsumy, self % dkx, self % dky, self % d)
+
+if (self % nsteps == 1) then
+    dt_tpol = 1.0_wp
 else
-    call self % tpol % construct(ischeme=0, delta_t=self % dt, ierr=i)
+    dt_tpol = self % dt
+end if
+
+if (present(ipol)) then
+    call self % tpol % construct(ischeme=ipol, delta_t=dt_tpol, ierr=i)
+else
+    call self % tpol % construct(ischeme=0, delta_t=dt_tpol, ierr=i)
 end if
 self % ipol = self % tpol % ischeme
 if (i /= 0) then
@@ -328,7 +343,7 @@ end if
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = self % dt * (self % nsteps - 1) - self % t0
-if (self % tmax <= self % dt) then
+if (self % tmax < self % dt) then
     write(err_msg(1),'(a,a)') 'Input file: ', trim(self % file)
     write(err_msg(2),'(a)') "Constructor parameter t0 is too large."
     write(err_msg(3),'(a,f0.4)') 't0 = ', self % t0
@@ -353,62 +368,38 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1005, err_msg(1:3))
     return
 end if
-    
-! The first three time steps are put into memory.
+
+! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
     inquire(self % unit, pos=self % ipos0) 
-    do i = 2, 4
-        read(self % unit, end=98, err=99) h(:,:,i)
-        read(self % unit, end=98, err=99) ht(:,:,i)
-        if (self % amp < 3) then
-            read(self % unit, end=98, err=99) c(:,:,i)
-            read(self % unit, end=98, err=99) ct(:,:,i)
-        else
-            c(:,:,i) = czero_c
-            ct(:,:,i) = czero_c
-        end if
-    end do
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
+    read(self % unit, end=98, err=99) h(:,:,2)
+    read(self % unit, end=98, err=99) ht(:,:,2)
+    if (self % amp < 3) then
+        read(self % unit, end=98, err=99) c(:,:,2)
+        read(self % unit, end=98, err=99) ct(:,:,2)
+    end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
     ! Storage fortran units per complex (c_float based)
     if (self % amp == 3) then
-        self % size_complex = (ipos2 - ipos1) / (3 * 2 * (self%nx + 1) * ( 2 * self%ny + 1))
+        self % size_complex = (ipos2 - ipos1) / (2 * (self%nx + 1) * ( 2 * self%ny + 1))
     else
-        self % size_complex = (ipos2 - ipos1) / (3 * 4 * (self%nx + 1) * ( 2 * self%ny + 1))
+        self % size_complex = (ipos2 - ipos1) / (4 * (self%nx + 1) * ( 2 * self%ny + 1))
     end if
-    self % size_step = (ipos2 - ipos1) / 3  ! three time steps
-    ! We apply padding for storing data at t=-dt
-    do ix = 0, self % nsumx
-        do iy = -self % nsumy, self % nsumy
-            ! Potential and d/dt of potential
-            call self % tpol % pad_left(              &
-                        cmplx(c(iy,ix,2), kind=wp),   &
-                        cmplx(c(iy,ix,3), kind=wp),   &
-                        cmplx(c(iy,ix,4), kind=wp),   &
-                        cmplx(ct(iy,ix,2), kind=wp),  &
-                        cmplx(ct(iy,ix,3), kind=wp),  &
-                        cmplx(ct(iy,ix,4), kind=wp),  &
-                        fval, dfval)
-            c(iy,ix,1) = fval
-            ct(iy,ix,1) = dfval
-            ! Wave height and d/dt of wave height
-            call self % tpol % pad_left(              &
-                        cmplx(h(iy,ix,2), kind=wp),   &
-                        cmplx(h(iy,ix,3), kind=wp),   &
-                        cmplx(h(iy,ix,4), kind=wp),   &
-                        cmplx(ht(iy,ix,2), kind=wp),  &
-                        cmplx(ht(iy,ix,3), kind=wp),  &
-                        cmplx(ht(iy,ix,4), kind=wp),  &
-                        fval, dfval)
-            h(iy,ix,1) = fval
-            ht(iy,ix,1) = dfval
-        end do
-    end do
-end associate
-self % istp = 3  ! The most recent physical step in memory
+    self % size_step = (ipos2 - ipos1)
 
-self % icur = 1  ! The column to store next data. Cycles with repetitons from 1 to 4
+end associate
+self % istp = 1  ! The most recent physical step in memory
+
+self % icur = 3  ! The column to store next data. Cycles with repetitons from 1 to 4
 ! self % ipt(1:4, icur) represent i-1, i, i+1 and i+2 in the interpolation scheme
 self % ipt(:,1) = [1,2,3,4]
 self % ipt(:,2) = [2,3,4,1]
@@ -422,7 +413,7 @@ err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
 return
-
+!
 99 continue
 err_msg(1) = 'Error when reading data from file:'
 err_msg(2) = self % file
@@ -433,8 +424,8 @@ end function constructor
 !==============================================================================
 
 subroutine update_time(self, time)
-! Update data in memory (if needed)
-class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self
+
+class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self  ! Update data in memory (if needed)
 real(knd), intent(in) :: time  ! Current time in simulation program
 !
 integer(int64) :: ipos
@@ -478,11 +469,17 @@ end if
 ! We need to store the 4 time steps: istp_min, istp_min+1, ..., istp_max in memory
 ! tswd=0.0 corresponds to time step 1. The last step in file is nsteps.
 ! Minimum time step in memory: =0 indicates need of padding below tswd = 0.0
-istp_min = int((self % tswd - teps) / self % dt)  
-! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
-istp_max = istp_min + 3
-!
-delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0]
+if (self % nsteps == 1) then
+    istp_min = 1
+    delta = 0.0_wp
+    istp_max = 1
+    self % icur = 1
+else
+    istp_min = int((self % tswd - teps) / self % dt)
+    delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0] 
+    ! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
+    istp_max = istp_min + 3
+end if  
 
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
           ht => self % ht_win, ic => self % icur, ip => self % ipt)
@@ -572,7 +569,7 @@ associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
         end if
     end do
 
-    if (imove < 0 .and. istp_min == 0) then
+    if (istp_min == 0) then
         ! Padding in first column because tswd < dt_swd. 
         do ix = 0, self % nsumx
             do iy = -self % nsumy, self % nsumy
@@ -727,6 +724,60 @@ do p = 1, order - 1
 end do
 !
 end function SfunTaylor
+
+!==============================================================================
+
+elemental function ZfunTaylor(kz, tanhkh, order) result(res)
+! Taylor expansion of cosh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj*tanhkh
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj
+    end if
+end do
+!
+end function ZfunTaylor
+
+!==============================================================================
+
+elemental function ZhfunTaylor(kz, tanhkh, order) result(res) 
+! Taylor expansion of sinh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = tanhkh
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj*tanhkh
+    end if
+end do
+!
+end function ZhfunTaylor
 
 !==============================================================================
 
@@ -1754,11 +1805,64 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 2*self % nsumy + 1)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % h_cur(:, 0:self % nsumy, 0:self % nsumx))
+elev = self % fft % fft_field_2D(c_fft, nx_fft_in, ny_fft_in)
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if
 
 end function elev_fft
+
+!==============================================================================
+
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+class(spectral_wave_data_shape_5_impl_1), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: grad_phi(:, :, :)
+real(wp), allocatable :: phi_x(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 2*self % nsumy+ 1)
+real(wp), dimension(self % nsumx + 1, 2*self % nsumy + 1) :: Zfun, Zhfun, kz, coshkz, sinhkz
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_5_impl_1::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
+
+kz = self % fft % k*z
+
+if (z > 0.0_wp .and. self % norder > 0) then
+    Zfun = ZfunTaylor(kz, self % fft % tanhkh, self % norder)
+    Zhfun = ZhfunTaylor(kz, self % fft % tanhkh, self % norder)
+else
+    coshkz = cosh(kz)
+    sinhkz = sinh(kz)
+    Zfun = coshkz + self % fft % tanhkh*sinhkz
+    Zhfun = sinhkz + self % fft % tanhkh*coshkz
+endif
+
+c_fft = self % fft % swd_to_fft_coeffs_2D(self % c_cur(:, 0:self % nsumy, 0:self % nsumx))
+phi_x = self % fft % fft_field_2D(iu*self % fft % kx*c_fft*Zfun, nx_fft_in, ny_fft_in)
+allocate(grad_phi(3, size(phi_x,1), size(phi_x,2)))
+grad_phi(2, :, :) = self % fft % fft_field_2D(iu*self % fft % ky*c_fft*Zfun, nx_fft_in, ny_fft_in)
+grad_phi(3, :, :) = self % fft % fft_field_2D(self % fft % k*c_fft*Zhfun, nx_fft_in, ny_fft_in)
+
+grad_phi(1, :, :) = phi_x * self % cbeta - grad_phi(2, :, :) * self % sbeta
+grad_phi(2, :, :) = phi_x * self % sbeta + grad_phi(2, :, :) * self % cbeta
+
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if            
+
+end function grad_phi_fft
 
 !==============================================================================
 

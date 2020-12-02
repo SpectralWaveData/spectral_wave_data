@@ -106,16 +106,19 @@ def make_waves(request, tmp_path_factory):
 
     if nsf == 0:
         swd_anal.write_swd1(file_swd1, dt=0.1, nsteps=11)
+        swd_anal.check_swd_meta(file_swd1, 1, nswd, nh)
         swd_num1 = SpectralWaveData(file_swd1, x0, y0, t0, beta, rho=1025.0, impl=impl, dc_bias=True)
     else:
         swd_num1 = None
     if nsf == 1:
         swd_anal.write_swd2(file_swd2, dt=0.1, nsteps=11)
+        swd_anal.check_swd_meta(file_swd2, 2, nswd, nh)
         swd_num2 = SpectralWaveData(file_swd2, x0, y0, t0, beta, rho=1025.0, impl=impl, dc_bias=True)
     else:
         swd_num2 = None
 
     swd_anal.write_swd3(file_swd3, dt=0.1, nsteps=11)
+    swd_anal.check_swd_meta(file_swd3, 3, nswd, nh)
     swd_num3 = SpectralWaveData(file_swd3, x0, y0, t0, beta, rho=1025.0, impl=impl, dc_bias=True)
 
     yield swd_anal, swd_num1, swd_num2, swd_num3, nsf
@@ -383,6 +386,10 @@ def test_waves(make_waves):
         dt_swd = swd_num3.get('dt')
         assert isinstance(dt_swd, float)
         assert math.isclose(dt_swd, 0.1, rel_tol=1e-5)
+
+        dc_bias = swd_num3["dc_bias"]
+        assert isinstance(dc_bias, bool)
+        assert dc_bias is True
 
         cid = swd_num3.get('cid')
         assert isinstance(cid, str)

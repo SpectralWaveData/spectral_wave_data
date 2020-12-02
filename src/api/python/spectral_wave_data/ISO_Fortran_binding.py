@@ -38,9 +38,19 @@ class CFI_dim_t(Structure):
      _fields_ = [("lower_bound", CFI_index_t), 
                  ("extent", CFI_index_t), 
                  ("sm", CFI_index_t)]
+                 
+# CFI_cdesc_t structure for 1D array
+class CFI_cdesc_t_1D(Structure):
+    _fields_ = [("base_addr", c_void_p), 
+                ("elem_len", c_size_t), 
+                ("version", c_int),
+                ("rank", CFI_rank_t),
+                ("attribute", CFI_attribute_t),
+                ("type", CFI_type_t),
+                ("dim", CFI_dim_t*1)]
 
-# CFI_cdesc_t structure
-class CFI_cdesc_t(Structure):
+# CFI_cdesc_t structure for 2D array
+class CFI_cdesc_t_2D(Structure):
     _fields_ = [("base_addr", c_void_p), 
                 ("elem_len", c_size_t), 
                 ("version", c_int),
@@ -48,3 +58,13 @@ class CFI_cdesc_t(Structure):
                 ("attribute", CFI_attribute_t),
                 ("type", CFI_type_t),
                 ("dim", CFI_dim_t*2)]
+
+# CFI_cdesc_t structure for 3D array
+class CFI_cdesc_t_3D(Structure):
+    _fields_ = [("base_addr", c_void_p), 
+                ("elem_len", c_size_t), 
+                ("version", c_int),
+                ("rank", CFI_rank_t),
+                ("attribute", CFI_attribute_t),
+                ("type", CFI_type_t),
+                ("dim", CFI_dim_t*3)]

@@ -177,12 +177,21 @@ void swd_api_strip(void *swd, real_swd tmin, real_swd tmax, const char *file_swd
 // wave elevation FFT
 // Eventual error signals (ref constructor): 1004
 void swd_api_elev_fft_(void *swd, int nx_fft, int ny_fft, CFI_cdesc_t *desc_elev_arr); // direct call to fortran
-CFI_cdesc_t *swd_api_elev_fft_obj(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
-void swd_api_elev_fft_obj_deallocate(CFI_cdesc_t *desc_elev_arr); // deallocating the CFI_cdesc_t object
+CFI_cdesc_t *swd_api_elev_fft(void *swd, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
 
-// deallocate arrays used for FFT evaluations
-// Eventual error signals (ref constructor): None
-void swd_api_close_fft();
+// grad phi FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_grad_phi_fft_(void *swd, double z, int nx_fft, int ny_fft, CFI_cdesc_t *desc_grad_phi_arr); // direct call to fortran
+CFI_cdesc_t *swd_api_grad_phi_fft(void *swd, double z, int nx_fft, int ny_fft); // function returning a CFI_cdesc_t object
+
+// x-grid FFT
+// Eventual error signals (ref constructor): 1004
+void swd_api_xy_fft_(void *swd, CFI_cdesc_t *desc_x_arr, CFI_cdesc_t *desc_y_arr, int nx_fft, int ny_fft); // direct call to fortran
+CFI_cdesc_t *swd_api_x_fft(void *swd, int nx_fft, int ny_fft); // wrapper to get x-grid
+CFI_cdesc_t *swd_api_y_fft(void *swd, int nx_fft, int ny_fft); // wrapper to get y-grid
+
+// deallocating a CFI_cdesc_t object
+void swd_api_fft_deallocate(CFI_cdesc_t *desc_arr);
 
 // ===================================================================
 //  Provide parameters from the swd-file:

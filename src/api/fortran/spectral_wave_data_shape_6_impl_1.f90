@@ -80,6 +80,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_6_impl_1
 
 interface spectral_wave_data_shape_6_impl_1
@@ -134,7 +135,7 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_6_impl_1) :: self  ! Object to construct
 !
-integer :: i, j, ios
+integer :: i, j, ios, err_id
 
 integer(c_int) :: fmt, shp, amp, n, order, nid, nsteps, nstrip
 real(c_float) :: kw, gam, gam_prev, wamp, phs, dt, grav, lscale, d, magic
@@ -175,10 +176,10 @@ self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = huge(self % tmax) / 100
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -1430,11 +1431,34 @@ function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
 class(spectral_wave_data_shape_6_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_6_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-allocate(elev(nx_fft_in, ny_fft_in))
-elev = 0.0_knd
+allocate(elev(1,1))
+elev = huge(elev)
+
+err_msg = ["not implemented"]
+call self % error % set_id_msg(err_proc, 1004, err_msg)
 
 end function elev_fft
+
+!==============================================================================
+
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
+class(spectral_wave_data_shape_6_impl_1), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
+integer, optional, intent(in) :: nx_fft_in, ny_fft_in
+real(knd), allocatable :: grad_phi(:, :, :)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_6_impl_1::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
+
+allocate(grad_phi(1,1,1))
+grad_phi = huge(grad_phi)
+
+err_msg = ["not implemented"]
+call self % error % set_id_msg(err_proc, 1004, err_msg)
+
+end function grad_phi_fft
 
 !==============================================================================
 

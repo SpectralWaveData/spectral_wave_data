@@ -2,7 +2,7 @@
     
 """
 :platform: Linux, Windows, python 2.7 and 3.x
-:synopsis: Defines the Python-C interface
+:synopsis: Defines the Python-C interface of spectral_wave_data
 
 Author  - Jens Bloch Helmers, DNVGL
 Created - 2019-08-11
@@ -13,30 +13,35 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import platform, sys, os
-from ctypes import c_bool, c_double, c_int, c_char_p, c_void_p, Structure, CDLL
+import os
+import sys
+import platform
+from ctypes import c_bool, c_double, c_int, c_char_p, c_void_p, Structure, CDLL, POINTER
+from .ISO_Fortran_binding import CFI_cdesc_t_2D, CFI_cdesc_t_3D
 
 assert sys.version_info >= (2, 7, 11)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-if platform.system()=='Windows':
-    intel_redist_path = os.getenv('INTEL_DEV_REDIST')
-    if intel_redist_path is None:
-        msg = """
-              To apply "spectral_wave_data" you need to install the latest version of:
-              1) Redistributable Libraries for Intel® C++ and Fortran Compilers for Windows
-                 This package can be downloaded for free from intel.com
-              2) You also need Microsoft Visual C++ redistributables or
-                 Visual Studio with C++ tools and libraries.
-                 These tools can be downloaded from microsoft.com
-              """
-        raise AssertionError(msg)
-    if sys.version_info >= (3, 8):
-        intel_redist_path = os.path.join(intel_redist_path, 'redist', 'intel64', 'compiler')
-        os.add_dll_directory(HERE)
-        os.add_dll_directory(intel_redist_path)
+if platform.system() == 'Windows':
+    # The Intel Redistributable Libraries are expected to be statical linked to the dll.
+    # Consequently, we skip this:
+    # intel_redist_path = os.getenv('INTEL_DEV_REDIST')
+    # if intel_redist_path is None:
+    #     msg = """
+    #           To apply "spectral_wave_data" you need to install the latest version of:
+    #           1) Redistributable Libraries for Intel® C++ and Fortran Compilers for Windows
+    #              This package can be downloaded for free from intel.com
+    #           2) You also need Microsoft Visual C++ redistributable or
+    #              Visual Studio with C++ tools and libraries.
+    #              These tools can be downloaded from microsoft.com
+    #           """
+    #     raise AssertionError(msg)
+    # if sys.version_info >= (3, 8):
+    #     intel_redist_path = os.path.join(intel_redist_path, 'redist', 'intel64', 'compiler')
+    #     os.add_dll_directory(HERE)
+    #     os.add_dll_directory(intel_redist_path)
     swdlib = CDLL(str(os.path.join(HERE, 'SpectralWaveData.dll')))
-elif platform.system()=='Linux':
+elif platform.system() == 'Linux':
     swdlib = CDLL(str(os.path.join(HERE, 'libSpectralWaveData.so')))
 else:
     raise AssertionError('Not supported platform: ' + platform.system())
@@ -58,7 +63,6 @@ class vecphi2ndswd(Structure):
 
 class vecelev2ndswd(Structure):
     _fields_ = [("xx", c_double), ("xy", c_double), ("yy", c_double)]
-
 
 swdlib.swd_api_allocate.argtypes = [c_char_p, c_double, c_double,
                                     c_double, c_double, c_double,
@@ -144,13 +148,17 @@ swdlib.swd_api_error_clear.restype = c_void_p
 swdlib.swd_api_close.argtypes = [c_void_p]
 swdlib.swd_api_close.restype = c_void_p
 
-from ctypes import POINTER
-from .ISO_Fortran_binding import CFI_cdesc_t
-swdlib.swd_api_elev_fft_obj.argtypes = [c_void_p, c_int, c_int]
-swdlib.swd_api_elev_fft_obj.restype = POINTER(CFI_cdesc_t)
+swdlib.swd_api_elev_fft.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_elev_fft.restype = POINTER(CFI_cdesc_t_2D)
 
-swdlib.swd_api_elev_fft_obj_deallocate.argtypes = [POINTER(CFI_cdesc_t)]
-swdlib.swd_api_elev_fft_obj_deallocate.restype = c_void_p
+swdlib.swd_api_grad_phi_fft.argtypes = [c_void_p, c_double, c_int, c_int]
+swdlib.swd_api_grad_phi_fft.restype = POINTER(CFI_cdesc_t_3D)
+
+swdlib.swd_api_x_fft.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_x_fft.restype = POINTER(CFI_cdesc_t_2D)
+
+swdlib.swd_api_y_fft.argtypes = [c_void_p, c_int, c_int]
+swdlib.swd_api_y_fft.restype = POINTER(CFI_cdesc_t_2D)
 
 """
 ================================================================================================

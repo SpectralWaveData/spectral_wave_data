@@ -30,14 +30,17 @@ pkg_dir = "spectral_wave_data"
 if platform.system() == "Windows":
     libfiles = [
         os.path.join(pkg_dir, "SpectralWaveData.dll"),
-        os.path.join(pkg_dir, "SpectralWaveData.exp"),
         os.path.join(pkg_dir, "spectral_wave_data.h"),
-        os.path.join(pkg_dir, "SpectralWaveData.lib"),
         os.path.join(pkg_dir, "SWD_logo.ico"),
         os.path.join(pkg_dir, "README.txt"),
         os.path.join(pkg_dir, "LICENSE.txt"),
     ]
-    libfiles += glob.glob(os.path.join(pkg_dir, "*.mod"))
+    # The following files are not required with Intel static compilation:
+    # libfiles += [
+    #   os.path.join(pkg_dir, "SpectralWaveData.exp"),
+    #   os.path.join(pkg_dir, "SpectralWaveData.lib"),
+    # ]
+    # libfiles += glob.glob(os.path.join(pkg_dir, "*.mod"))
 elif platform.system() == "Linux":
     libfiles = [
         os.path.join(pkg_dir, "libSpectralWaveData.so"),

@@ -10,6 +10,7 @@ use open_swd_file_def, only: open_swd_file, swd_validate_binary_convention, &
 use spectral_wave_data_def, only: spectral_wave_data
 use spectral_interpolation_def, only: spectral_interpolation
 use swd_version, only: version
+use swd_fft_def, only: swd_fft
 
 implicit none
 private
@@ -79,8 +80,7 @@ contains
     procedure :: get_real           ! Extract a specified real parameter
     procedure :: get_chr            ! Extract a specified char parameter
     procedure :: elev_fft           ! Surface elevation on a regular grid using FFT 
-    procedure, private :: swd_to_fft_coeffs
-    procedure, private :: grid_size_fft
+    procedure :: grad_phi_fft       ! Grad phi on a regular grid using FFT 
 end type spectral_wave_data_shape_2_impl_1
 
 interface spectral_wave_data_shape_2_impl_1
@@ -88,6 +88,7 @@ interface spectral_wave_data_shape_2_impl_1
 end interface
 
 real(wp), parameter :: pi = 3.14159265358979323846264338327950288419716939937510582097494_wp
+complex(wp), parameter :: iu = cmplx(0.0_wp, 1.0_wp, wp)
 real(wp), parameter :: Rfun_eps = 100.0_wp * epsilon(1.0_wp)
 
 contains
@@ -98,6 +99,8 @@ subroutine close(self)
 class(spectral_wave_data_shape_2_impl_1) :: self  ! Object to destruct
 !
 logical opened
+!
+call self % fft % close()
 !
 inquire(unit=self % unit, opened=opened)
 if (opened) close(self % unit)
@@ -142,7 +145,7 @@ logical, optional,   intent(in):: dc_bias ! True: apply zero frequency amplitude
                                           ! False: Suppress contribution from zero frequency amplitudes (Default)
 type(spectral_wave_data_shape_2_impl_1) :: self  ! Object to construct
 !
-integer :: i, ios
+integer :: i, ios, err_id
 
 integer(int64) :: ipos1, ipos2
 integer(c_int) :: fmt, shp, amp, n, order, nid, nsteps, nstrip
@@ -153,6 +156,7 @@ character(kind=c_char, len=20) :: cdate
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::constructor'
 character(len=250) :: err_msg(5)
 complex(wp) :: fval, dfval
+real(wp) :: dt_tpol
 complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
@@ -174,10 +178,10 @@ self % x0 = x0
 self % y0 = y0
 self % file = file
 
-call swd_validate_binary_convention(self % file, err_msg(2))
+call swd_validate_binary_convention(self % file, err_id, err_msg(2))
 if (err_msg(2) /= '') then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    call self % error % set_id_msg(err_proc, 1002, err_msg(1:2))
+    call self % error % set_id_msg(err_proc, err_id, err_msg(1:2))
     return
 end if
 
@@ -284,10 +288,19 @@ else
     self % nsumx = n
 end if
 
-if (present(ipol)) then
-    call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
+! make object for FFT-based evaluations
+self % fft = swd_fft(self % nsumx, 0, self % dk, 0.0_wp, self % d)
+
+if (self % nsteps == 1) then
+    dt_tpol = 1.0_wp
 else
-    call self % tpol % construct(ischeme=0, delta_t=self % dt, ierr=i)
+    dt_tpol = self % dt
+end if
+
+if (present(ipol)) then
+    call self % tpol % construct(ischeme=ipol, delta_t=dt_tpol, ierr=i)
+else
+    call self % tpol % construct(ischeme=0, delta_t=dt_tpol, ierr=i)
 end if
 self % ipol = self % tpol % ischeme
 if (i /= 0) then
@@ -301,7 +314,7 @@ end if
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = self % dt * (self % nsteps - 1) - self % t0
-if (self % tmax <= self % dt) then
+if (self % tmax < self % dt) then
     write(err_msg(1),'(a,a)') 'Input file: ', trim(self % file)
     write(err_msg(2),'(a)') "Constructor parameter t0 is too large."
     write(err_msg(3),'(a,f0.4)') 't0 = ', self % t0
@@ -335,61 +348,38 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1005, err_msg(1:3))
     return
 end if
-    
-! The first three time steps are put into memory.
+
+! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
-    inquire(self % unit, pos=self % ipos0) 
-    do i = 2, 4
-        read(self % unit, end=98, err=99) h(:,i)
-        read(self % unit, end=98, err=99) ht(:,i)
-        if (self % amp < 3) then
-            read(self % unit, end=98, err=99) c(:,i)
-            read(self % unit, end=98, err=99) ct(:,i)
-        else
-            c(:,i) = czero_c
-            ct(:,i) = czero_c
-        end if
-    end do
+    inquire(self % unit, pos=self % ipos0)
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
+    read(self % unit, end=98, err=99) h(:,2)
+    read(self % unit, end=98, err=99) ht(:,2)
+    if (self % amp < 3) then
+        read(self % unit, end=98, err=99) c(:,2)
+        read(self % unit, end=98, err=99) ct(:,2)
+    end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
     ! Storage fortran units per complex (c_float based)
     if (self % amp == 3) then
-        self % size_complex = (ipos2 - ipos1) / (3 * 2 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (2 * (self%n + 1))
     else
-        self % size_complex = (ipos2 - ipos1) / (3 * 4 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (4 * (self%n + 1))
     end if
-    self % size_step = (ipos2 - ipos1) / 3  ! three time steps
-    ! We apply padding for storing data at t= -dt
-    do concurrent (i = 0 : self % nsumx)
-        ! Potential and d/dt of potential
-        call self % tpol % pad_left(          &
-                    cmplx(c(i,2), kind=wp),   &
-                    cmplx(c(i,3), kind=wp),   &
-                    cmplx(c(i,4), kind=wp),   &
-                    cmplx(ct(i,2), kind=wp),  &
-                    cmplx(ct(i,3), kind=wp),  &
-                    cmplx(ct(i,4), kind=wp),  &
-                    fval, dfval)
-        c(i,1) = fval
-        ct(i,1) = dfval
-        ! Wave height and d/dt of wave height
-        call self % tpol % pad_left(          &
-                    cmplx(h(i,2), kind=wp),   &
-                    cmplx(h(i,3), kind=wp),   &
-                    cmplx(h(i,4), kind=wp),   &
-                    cmplx(ht(i,2), kind=wp),  &
-                    cmplx(ht(i,3), kind=wp),  &
-                    cmplx(ht(i,4), kind=wp),  &
-                    fval, dfval)
-        h(i,1) = fval
-        ht(i,1) = dfval
-    end do
+    self % size_step = (ipos2 - ipos1)
 
 end associate
-self % istp = 3  ! The most recent physical step in memory
+self % istp = 1  ! The most recent physical step in memory
 
-self % icur = 1  ! The column to store next data. Cycles with repetitons from 1 to 4
+self % icur = 3  ! The column to store next data. Cycles with repetitons from 1 to 4
 ! self % ipt(1:4, icur) represent i-1, i, i+1 and i+2 in the interpolation scheme
 self % ipt(:,1) = [1,2,3,4]
 self % ipt(:,2) = [2,3,4,1]
@@ -403,7 +393,7 @@ err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
 return
-
+!
 99 continue
 err_msg(1) = 'Error when reading data from file:'
 err_msg(2) = self % file
@@ -458,11 +448,17 @@ end if
 ! We need to store the 4 time steps: istp_min, istp_min+1, ..., istp_max in memory
 ! tswd=0.0 corresponds to time step 1. The last step in file is nsteps.
 ! Minimum time step in memory: =0 indicates need of padding below tswd = 0.0
-istp_min = int((self % tswd - teps) / self % dt)  
-! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
-istp_max = istp_min + 3
-!
-delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0]
+if (self % nsteps == 1) then
+    istp_min = 1
+    delta = 0.0_wp
+    istp_max = 1
+    self % icur = 1
+else
+    istp_min = int((self % tswd - teps) / self % dt)
+    delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0] 
+    ! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
+    istp_max = istp_min + 3
+end if  
 
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
           ht => self % ht_win, ic => self % icur, ip => self % ipt)
@@ -550,7 +546,7 @@ associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
         end if
     end do
 
-    if (imove < 0 .and. istp_min == 0) then
+    if (istp_min == 0) then
         ! Padding in first column because tswd < dt_swd. 
         do concurrent (i = 0 : self % nsumx)
             ! Potential and d/dt of potential
@@ -633,7 +629,7 @@ end subroutine update_time
 !==============================================================================
 
 function SfunTaylor(z, j, dk, order) result(res) ! Value of Sfun(j) based on Taylor expansion
-real(knd),       intent(in) :: z   ! z-position (>0)
+real(wp),       intent(in) :: z   ! z-position (>0)
 integer,         intent(in) :: j   ! Index of Sfun
 real(wp),        intent(in) :: dk  ! self % dk
 integer,         intent(in) :: order ! self % order
@@ -651,6 +647,81 @@ do p = 1, order - 1
 end do
 !
 end function SfunTaylor
+
+!==============================================================================
+
+elemental function ZfunTaylor(kz, tanhkh, order) result(res)
+! Taylor expansion of cosh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj*tanhkh
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj
+    end if
+end do
+!
+end function ZfunTaylor
+
+!==============================================================================
+
+elemental function ZhfunTaylor(kz, tanhkh, order) result(res) 
+! Taylor expansion of sinh(k(z+h))/cosh(kh) around z = 0
+real(wp), intent(in) :: kz   ! k*z = wavenumber k times z-position (>0)
+real(wp), intent(in) :: tanhkh   ! tanh(k*h)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
+!
+integer :: p
+real(wp) :: apj
+!
+apj = 1.0_wp
+res = tanhkh
+do p = 1, order - 1, 2
+    ! order p + 1
+    apj = apj*kz/p
+    res = res + apj
+    ! order p + 2
+    if (order >= p + 2) then
+        apj = apj*kz/(p+1)
+        res = res + apj*tanhkh
+    end if
+end do
+!
+end function ZhfunTaylor
+
+!==============================================================================
+
+function TfunTaylor(zwp, kjxjy, order) result(res) ! Value of Tfun based on Taylor expansion
+real(wp),  intent(in) :: zwp   ! z-position (>0)
+real(wp),  intent(in) :: kjxjy ! Actual k
+integer,   intent(in) :: order ! expansion order
+real(wp)              :: res
+!
+integer :: p
+real(wp) :: ap1, apj
+!
+ap1 = - kjxjy * zwp
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1
+    apj = apj * ap1 / p
+    res = res + apj
+end do
+!
+end function TfunTaylor
 
 !==============================================================================
 
@@ -676,8 +747,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -685,7 +758,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % c_cur(j) * Xfun) * Zfun
@@ -717,8 +789,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -726,7 +800,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zhfun = Ufun * Sfun - Vfun * Tfun
     end if
     res = res + aimag(self % c_cur(j) * Xfun) * Zhfun
@@ -758,8 +831,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -767,7 +842,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % ct_cur(j) * Xfun) * Zfun
@@ -803,8 +877,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -813,7 +889,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -863,8 +938,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -873,7 +950,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -919,8 +995,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -929,7 +1007,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -992,8 +1069,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -1002,7 +1081,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -1065,8 +1143,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -1075,7 +1155,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -1113,9 +1192,9 @@ complex(c_float), allocatable :: camp(:)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::strip'
 character(len=250) :: err_msg(5)
 !
-if (tmin >= tmax) then
+if (tmin > tmax) then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    err_msg(2) = 'tmin should be less than tmax'
+    err_msg(2) = 'tmin should be less than or equal to tmax'
     write(err_msg(3),'(a,f0.5)') 'tmin = ', tmin
     write(err_msg(4),'(a,f0.5)') 'tmax = ', tmax
     call self % error % set_id_msg(err_proc, 1004, err_msg(1:4))
@@ -1131,8 +1210,13 @@ if (tmax >= tmax_allow) then
 end if
 tmin_swd = self % t0 + tmin
 tmax_swd = self % t0 + tmax
-istep_first = floor(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
-istep_last = ceiling(tmax_swd / self % dt) + 1
+if (tmin == tmax) then
+    istep_first = nint(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
+    istep_last = istep_first
+else
+    istep_first = floor(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
+    istep_last = ceiling(tmax_swd / self % dt) + 1
+end if
 !
 call open_swd_file(newunit=lures, file=file_swd, status='replace', &
                    as_little_endian=.true., iostat=ios)
@@ -1533,80 +1617,65 @@ end function get_chr
 !==============================================================================
 
 function elev_fft(self, nx_fft_in, ny_fft_in) result(elev)
-use fft_fftw3_def, only : irfft2
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
 real(knd), allocatable :: elev(:, :)
-integer :: nx_fft, ny_fft
+complex(wp) :: c_fft(self % nsumx + 1, 1)
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::elev_fft'
+character(len=:), allocatable :: err_msg(:)
 
-call self % grid_size_fft(nx_fft, ny_fft, nx_fft_in, ny_fft_in)
+c_fft = self % fft % swd_to_fft_coeffs_1D(self % h_cur(0:self % nsumx))
+elev = self % fft % fft_field_1D(c_fft, nx_fft_in)
 
-if (self % error % raised()) then
-    allocate(elev(1, 1))
-    elev = huge(elev)
-    return
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
 end if
-
-elev = irfft2(self % swd_to_fft_coeffs(self % h_cur(0:self % nsumx)), 2*self % nsumx, 1, nx_fft, ny_fft)
 
 end function elev_fft
 
 !==============================================================================
 
-function swd_to_fft_coeffs(self, swd_coeffs) result(fft_coeffs)
+function grad_phi_fft(self, z, nx_fft_in, ny_fft_in) result(grad_phi)
 class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
-complex(wp), dimension(0:self % nsumx), intent(in) :: swd_coeffs
-complex(wp), dimension(self % nsumx + 1, 1) :: fft_coeffs
-integer :: ix, iy
-real(wp) :: sc
-
-fft_coeffs = cmplx(0.0_wp, 0.0_wp, kind=wp)
-fft_coeffs(1:self % nsumx + 1, 1) = 0.5_wp*conjg(swd_coeffs(0:self % nsumx))
-
-end function swd_to_fft_coeffs
-
-!==============================================================================
-
-subroutine grid_size_fft(self, nx_fft, ny_fft, nx_fft_in, ny_fft_in)
-class(spectral_wave_data_shape_2_impl_1), intent(inout) :: self ! Actual class
+real(wp), intent(in) :: z
 integer, optional, intent(in) :: nx_fft_in, ny_fft_in
-integer, intent(out) :: nx_fft, ny_fft
-character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::grid_size_fft'
-character(len=250) :: err_msg(5)
+real(knd), allocatable :: grad_phi(:, :, :)
+real(wp), allocatable :: phi_x(:, :)
+complex(wp) :: c_fft(self % nsumx + 1, 1)
+real(wp), dimension(self % nsumx + 1, 1) :: Zfun, Zhfun, kz, coshkz, sinhkz
+character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::grad_phi_fft'
+character(len=:), allocatable :: err_msg(:)
 
-if (present(nx_fft_in)) then
-    if (nx_fft_in < 0) then
-        nx_fft = -nx_fft_in*2*self % nsumx
-    elseif (nx_fft_in >= 2*self % nsumx) then
-        nx_fft = nx_fft_in
-    else
-        write(err_msg(1),'(a)') "Invalid grid size nx_fft."
-        write(err_msg(2),'(a)') "nx_fft must either be a negative integer, or a positive"
-        write(err_msg(3),'(a)') "integer larger than or equal to the size of the" 
-        write(err_msg(4),'(a)') "smallest grid resolving all coefficients in the swd-file."
-        write(err_msg(5),'(a, I0)') 'Smalles possible nx_fft = ', 2*self % nsumx
-        call self % error % set_id_msg(err_proc, 1004, err_msg)
-        nx_fft = huge(nx_fft)
-        ny_fft = huge(ny_fft)
-        return
-    end if
+kz = self % fft % k*z
+
+if (z > 0.0_wp .and. self % norder > 0) then
+    Zfun = ZfunTaylor(kz, self % fft % tanhkh, self % norder)
+    Zhfun = ZhfunTaylor(kz, self % fft % tanhkh, self % norder)
 else
-    nx_fft = 2*self % nsumx
-end if
+    coshkz = cosh(kz)
+    sinhkz = sinh(kz)
+    Zfun = coshkz + self % fft % tanhkh*sinhkz
+    Zhfun = sinhkz + self % fft % tanhkh*coshkz
+endif
 
-if (present(ny_fft_in)) then
-    if (abs(ny_fft_in) /= 1) then
-        write(err_msg(1),'(a)') "Invalid grid size ny_fft."
-        write(err_msg(2),'(a)') "ny_fft must be 1 for unidirectional waves."
-        call self % error % set_id_msg(err_proc, 1004, err_msg(1:2))
-        nx_fft = huge(nx_fft)
-        ny_fft = huge(ny_fft)
-        return
-    end if
-end if
-ny_fft = 1
+c_fft = self % fft % swd_to_fft_coeffs_1D(self % c_cur(0:self % nsumx))
+phi_x = self % fft % fft_field_1D(iu*self % fft % kx*c_fft*Zfun, nx_fft_in)
+allocate(grad_phi(3, size(phi_x), 1))
+grad_phi(1, :, :) = phi_x*self % cbeta
+grad_phi(2, :, :) = phi_x*self % sbeta
+grad_phi(3, :, :) = self % fft % fft_field_1D(self % fft % k*c_fft*Zhfun, nx_fft_in)
 
-end subroutine grid_size_fft
+if (self % fft % error % raised()) then
+    err_msg = [self % fft % error % get_msg()]
+    call self % error % set_id_msg(err_proc, &
+                                   self % fft % error % get_id(), &
+                                   err_msg)
+end if            
+
+end function grad_phi_fft
 
 !==============================================================================
 

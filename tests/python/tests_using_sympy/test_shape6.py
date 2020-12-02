@@ -94,6 +94,7 @@ def make_waves(request, tmp_path_factory):
     swd_anal.tmpdir = str(tmp_path_factory.mktemp("swd"))
     file_swd = os.path.join(swd_anal.tmpdir, "shp_6.swd")
     swd_anal.write_swd(file_swd)
+    swd_anal.check_swd_meta(file_swd, n=len(amps))
     swd_num = SpectralWaveData(file_swd, x0, y0, t0, beta, rho=1025.0, impl=0, norder=norder, dc_bias=True)
 
     yield swd_anal, swd_num
@@ -199,6 +200,10 @@ def test_waves(make_waves):
         grav = swd_num.get('grav')
         assert isinstance(grav, float)
         assert math.isclose(grav, swd_anal.grav, rel_tol=1e-5)
+
+        dc_bias = swd_num["dc_bias"]
+        assert isinstance(dc_bias, bool)
+        assert dc_bias is True
 
         swd_class = swd_num.get('class')
         assert isinstance(swd_class, str)
