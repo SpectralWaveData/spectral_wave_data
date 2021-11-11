@@ -150,6 +150,7 @@ character(kind=c_char, len=20) :: cdate
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::constructor'
 character(len=250) :: err_msg(5)
 complex(wp) :: fval, dfval
+real(wp) :: dt_tpol
 complex(c_float), parameter :: czero_c = cmplx(0.0_c_float, 0.0_c_float, c_float)
 !
 call self % error % clear()
@@ -281,10 +282,16 @@ else
     self % nsumx = n
 end if
 
-if (present(ipol)) then
-    call self % tpol % construct(ischeme=ipol, delta_t=self % dt, ierr=i)
+if (self % nsteps == 1) then
+    dt_tpol = 1.0_wp
 else
-    call self % tpol % construct(ischeme=0, delta_t=self % dt, ierr=i)
+    dt_tpol = self % dt
+end if
+
+if (present(ipol)) then
+    call self % tpol % construct(ischeme=ipol, delta_t=dt_tpol, ierr=i)
+else
+    call self % tpol % construct(ischeme=0, delta_t=dt_tpol, ierr=i)
 end if
 self % ipol = self % tpol % ischeme
 if (i /= 0) then
@@ -298,7 +305,7 @@ end if
 self % sbeta = sin(beta*pi/180.0_wp)
 self % cbeta = cos(beta*pi/180.0_wp)
 self % tmax = self % dt * (self % nsteps - 1) - self % t0
-if (self % tmax <= self % dt) then
+if (self % tmax < self % dt) then
     write(err_msg(1),'(a,a)') 'Input file: ', trim(self % file)
     write(err_msg(2),'(a)') "Constructor parameter t0 is too large."
     write(err_msg(3),'(a,f0.4)') 't0 = ', self % t0
@@ -332,61 +339,38 @@ if (i /= 0) then
     call self % error % set_id_msg(err_proc, 1005, err_msg(1:3))
     return
 end if
-    
-! The first three time steps are put into memory.
+
+! The first timestep is put into memory.
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, ht => self % ht_win)
     ! request file position where the temporal functions start
-    inquire(self % unit, pos=self % ipos0) 
-    do i = 2, 4
-        read(self % unit, end=98, err=99) h(:,i)
-        read(self % unit, end=98, err=99) ht(:,i)
-        if (self % amp < 3) then
-            read(self % unit, end=98, err=99) c(:,i)
-            read(self % unit, end=98, err=99) ct(:,i)
-        else
-            c(:,i) = czero_c
-            ct(:,i) = czero_c
-        end if
-    end do
+    inquire(self % unit, pos=self % ipos0)
+
+    ! set to zero intially
+    h = czero_c
+    ht = czero_c
+    c = czero_c
+    ct = czero_c
+
+    read(self % unit, end=98, err=99) h(:,2)
+    read(self % unit, end=98, err=99) ht(:,2)
+    if (self % amp < 3) then
+        read(self % unit, end=98, err=99) c(:,2)
+        read(self % unit, end=98, err=99) ct(:,2)
+    end if
     ipos1 = self % ipos0
     inquire(self % unit, pos=ipos2)
     ! Storage fortran units per complex (c_float based)
     if (self % amp == 3) then
-        self % size_complex = (ipos2 - ipos1) / (3 * 2 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (2 * (self%n + 1))
     else
-        self % size_complex = (ipos2 - ipos1) / (3 * 4 * (self%n + 1))
+        self % size_complex = (ipos2 - ipos1) / (4 * (self%n + 1))
     end if
-    self % size_step = (ipos2 - ipos1) / 3  ! three time steps
-    ! We apply padding for storing data at t= -dt
-    do concurrent (i = 0 : self % nsumx)
-        ! Potential and d/dt of potential
-        call self % tpol % pad_left(          &
-                    cmplx(c(i,2), kind=wp),   &
-                    cmplx(c(i,3), kind=wp),   &
-                    cmplx(c(i,4), kind=wp),   &
-                    cmplx(ct(i,2), kind=wp),  &
-                    cmplx(ct(i,3), kind=wp),  &
-                    cmplx(ct(i,4), kind=wp),  &
-                    fval, dfval)
-        c(i,1) = fval
-        ct(i,1) = dfval
-        ! Wave height and d/dt of wave height
-        call self % tpol % pad_left(          &
-                    cmplx(h(i,2), kind=wp),   &
-                    cmplx(h(i,3), kind=wp),   &
-                    cmplx(h(i,4), kind=wp),   &
-                    cmplx(ht(i,2), kind=wp),  &
-                    cmplx(ht(i,3), kind=wp),  &
-                    cmplx(ht(i,4), kind=wp),  &
-                    fval, dfval)
-        h(i,1) = fval
-        ht(i,1) = dfval
-    end do
+    self % size_step = (ipos2 - ipos1)
 
 end associate
-self % istp = 3  ! The most recent physical step in memory
+self % istp = 1  ! The most recent physical step in memory
 
-self % icur = 1  ! The column to store next data. Cycles with repetitons from 1 to 4
+self % icur = 3  ! The column to store next data. Cycles with repetitons from 1 to 4
 ! self % ipt(1:4, icur) represent i-1, i, i+1 and i+2 in the interpolation scheme
 self % ipt(:,1) = [1,2,3,4]
 self % ipt(:,2) = [2,3,4,1]
@@ -400,7 +384,7 @@ err_msg(1) = 'End of file when reading data from file:'
 err_msg(2) = self % file
 call self % error % set_id_msg(err_proc, 1003, err_msg(1:2))
 return
-
+!
 99 continue
 err_msg(1) = 'Error when reading data from file:'
 err_msg(2) = self % file
@@ -455,11 +439,17 @@ end if
 ! We need to store the 4 time steps: istp_min, istp_min+1, ..., istp_max in memory
 ! tswd=0.0 corresponds to time step 1. The last step in file is nsteps.
 ! Minimum time step in memory: =0 indicates need of padding below tswd = 0.0
-istp_min = int((self % tswd - teps) / self % dt)  
-! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
-istp_max = istp_min + 3
-!
-delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0]
+if (self % nsteps == 1) then
+    istp_min = 1
+    delta = 0.0_wp
+    istp_max = 1
+    self % icur = 1
+else
+    istp_min = int((self % tswd - teps) / self % dt)
+    delta = self % tswd / self % dt - istp_min  ! delta in [0.0, 1.0] 
+    ! Maximum time step in memory: =nsteps+1 indicates padding beyond tswd_max
+    istp_max = istp_min + 3
+end if  
 
 associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
           ht => self % ht_win, ic => self % icur, ip => self % ipt)
@@ -547,7 +537,7 @@ associate(c => self % c_win, ct => self % ct_win, h => self % h_win, &
         end if
     end do
 
-    if (imove < 0 .and. istp_min == 0) then
+    if (istp_min == 0) then
         ! Padding in first column because tswd < dt_swd. 
         do concurrent (i = 0 : self % nsumx)
             ! Potential and d/dt of potential
@@ -651,6 +641,27 @@ end function SfunTaylor
 
 !==============================================================================
 
+function TfunTaylor(zwp, kjxjy, order) result(res) ! Value of Tfun based on Taylor expansion
+real(wp),  intent(in) :: zwp   ! z-position (>0)
+real(wp),  intent(in) :: kjxjy ! Actual k
+integer,   intent(in) :: order ! expansion order
+real(wp)              :: res
+!
+integer :: p
+real(wp) :: ap1, apj
+!
+ap1 = - kjxjy * zwp
+apj = 1.0_wp
+res = 1.0_wp
+do p = 1, order - 1
+    apj = apj * ap1 / p
+    res = res + apj
+end do
+!
+end function TfunTaylor
+
+!==============================================================================
+
 function phi(self, x, y, z) result(res)
 class(spectral_wave_data_shape_2_impl_1), intent(in) :: self  ! Actual class
 real(knd), intent(in) :: x,y,z ! Position application program
@@ -673,8 +684,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -682,7 +695,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % c_cur(j) * Xfun) * Zfun
@@ -714,8 +726,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -723,7 +737,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zhfun = Ufun * Sfun - Vfun * Tfun
     end if
     res = res + aimag(self % c_cur(j) * Xfun) * Zhfun
@@ -755,8 +768,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -764,7 +779,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
     end if
     res = res + real(self % ct_cur(j) * Xfun) * Zfun
@@ -800,8 +814,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -810,7 +826,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -860,8 +875,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -870,7 +887,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -916,8 +932,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -926,7 +944,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -989,8 +1006,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -999,7 +1018,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -1062,8 +1080,10 @@ do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
         Sfun = SfunTaylor(z, j, self %dk, self % norder) 
+        Tfun = TfunTaylor(z, j*self %dk, self % norder)
     else
         Sfun = kappa2 * Sfun
+        Tfun = kappa3 * Tfun
     end if
     Rfun = (Rfun + self % tanhdkd) / (1.0_wp + self % tanhdkd * Rfun)
     if (1.0_wp - Rfun < Rfun_eps) then
@@ -1072,7 +1092,6 @@ do j = 1, self % nsumx
     else
         Ufun = (1.0_wp + Rfun) * 0.5_wp
         Vfun = 1.0_wp - Ufun
-        Tfun = kappa3 * Tfun
         Zfun = Ufun * Sfun + Vfun * Tfun
         Zfun_z = kval * (Ufun * Sfun - Vfun * Tfun)
     end if
@@ -1110,9 +1129,9 @@ complex(c_float), allocatable :: camp(:)
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::strip'
 character(len=250) :: err_msg(5)
 !
-if (tmin >= tmax) then
+if (tmin > tmax) then
     write(err_msg(1),'(a,a)') 'SWD file: ', trim(self % file)
-    err_msg(2) = 'tmin should be less than tmax'
+    err_msg(2) = 'tmin should be less than or equal to tmax'
     write(err_msg(3),'(a,f0.5)') 'tmin = ', tmin
     write(err_msg(4),'(a,f0.5)') 'tmax = ', tmax
     call self % error % set_id_msg(err_proc, 1004, err_msg(1:4))
@@ -1128,8 +1147,13 @@ if (tmax >= tmax_allow) then
 end if
 tmin_swd = self % t0 + tmin
 tmax_swd = self % t0 + tmax
-istep_first = floor(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
-istep_last = ceiling(tmax_swd / self % dt) + 1
+if (tmin == tmax) then
+    istep_first = nint(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
+    istep_last = istep_first
+else
+    istep_first = floor(tmin_swd / self % dt) + 1 ! t=0.0 is time step 1
+    istep_last = ceiling(tmax_swd / self % dt) + 1
+end if
 !
 call open_swd_file(newunit=lures, file=file_swd, status='replace', &
                    as_little_endian=.true., iostat=ios)
