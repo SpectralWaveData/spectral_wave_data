@@ -1,8 +1,9 @@
+import os
 import numpy as np
 import pytest
 from spectral_wave_data import SpectralWaveData
 
-
+input_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "inputfiles")
 
 # make a list with the combination of the parameters to test
 case_params = []
@@ -24,7 +25,8 @@ def test_onetimestep(test_case):
     for ut in range(nstep_max): # check time step ut in all .swd files with different nsteps
         res = []
         for nsteps in range(ut+1, nstep_max+1):
-            with SpectralWaveData(f'inputfiles/shape{shape}_impl{impl}_nsteps{nsteps}.swd') as swd:
+            file_swd = os.path.join(input_dir, f"shape{shape}_impl{impl}_nsteps{nsteps}.swd")
+            with SpectralWaveData(file_swd) as swd:
                 for i in range(10): # randomly jump a bit chack and forth in time
                     t_rand = np.random.uniform(0.0, (nsteps - 1)*dt)
                     swd.update_time(t_rand)
