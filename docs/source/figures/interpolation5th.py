@@ -24,18 +24,18 @@ q5 = - fim1 - 3 * fi + 3 * fip1 + fip2 - (dfim1  + 11 * dfi + 11 * dfip1 + dfip2
 # curve defining ddfi
 a0 = fi
 a1 = dfi
-a2 = -(8 * fi - 4 * fim1 - 4 * fip1 - dfim1 * dt + dfip1 * dt)/(4 * dt)
-a3 = -(5 * fim1 - 5 * fip1 + 8 * dfi * dt + dfim1 * dt + dfip1 * dt) / (4 * dt)
-a4 = -(-4 * fi + 2 * fim1 + 2 * fip1 + dfim1 * dt - dfip1 * dt)/ ( 4 * dt)
-a5 = -(-3 * fim1 + 3 * fip1 - 4 * dfi * dt - dfim1 * dt - dfip1 * dt)/ (4 * dt)
+a2 = -(8 * fi - 4 * fim1 - 4 * fip1 - dfim1 * dt + dfip1 * dt)/(4 * dt**2)
+a3 = -(5 * fim1 - 5 * fip1 + 8 * dfi * dt + dfim1 * dt + dfip1 * dt) / (4 * dt**3)
+a4 = -(-4 * fi + 2 * fim1 + 2 * fip1 + dfim1 * dt - dfip1 * dt)/ ( 4 * dt**4)
+a5 = -(-3 * fim1 + 3 * fip1 - 4 * dfi * dt - dfim1 * dt - dfip1 * dt)/ (4 * dt**5)
 
 # curve defining ddfip1
 b0 = fip1
 b1 = dfip1
-b2 = -(8 * fip1 - 4 * fi - 4 * fip2 - dfi * dt + dfip2 * dt)/(4 * dt)
-b3 = -(5 * fi - 5 * fip2 + 8 * dfip1 * dt + dfi * dt + dfip2 * dt) / (4 * dt)
-b4 = -(-4 * fip1 + 2 * fi + 2 * fip2 + dfi * dt - dfip2 * dt)/ ( 4 * dt)
-b5 = -(-3 * fi + 3 * fip2 - 4 * dfip1 * dt - dfi * dt - dfip2 * dt)/ (4 * dt)
+b2 = -(8 * fip1 - 4 * fi - 4 * fip2 - dfi * dt + dfip2 * dt)/(4 * dt**2)
+b3 = -(5 * fi - 5 * fip2 + 8 * dfip1 * dt + dfi * dt + dfip2 * dt) / (4 * dt**3)
+b4 = -(-4 * fip1 + 2 * fi + 2 * fip2 + dfi * dt - dfip2 * dt)/ ( 4 * dt**4)
+b5 = -(-3 * fi + 3 * fip2 - 4 * dfip1 * dt - dfi * dt - dfip2 * dt)/ (4 * dt**5)
 
 
 def fun(t):

@@ -4,7 +4,7 @@
 :platform: Linux, Windows, python 3.x
 :synopsis: Define version number of spectral-wave-data.
 
-Author  - Jens Bloch Helmers, DNVGL
+Author  - Jens Bloch Helmers, DNV
 Created - 2020-01-24
 """
 
