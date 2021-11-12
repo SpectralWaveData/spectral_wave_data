@@ -27,7 +27,7 @@ from version_definition import version_core as version, version_full as release
 # -- Project information -----------------------------------------------------
 
 project = u'spectral-wave-data'
-copyright = u'2019-2020, DNVGL'
+copyright = u'2019-2021, DNV'
 author = u'Jens B. Helmers'
 
 # The short X.Y version

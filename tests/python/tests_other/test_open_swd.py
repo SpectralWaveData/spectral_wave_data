@@ -38,6 +38,11 @@ def test_open_empty(tmp_path):
         swd = SpectralWaveData(file_swd)
 
 
+def test_open_file_swd_is_not_string_or_bytes(tmp_path):
+    with pytest.raises(SwdInputValueError):
+        swd = SpectralWaveData(file_swd=3.14)
+
+
 def test_open_double_precision(tmp_path):
     file_swd = os.path.join(str(tmp_path), "my_double_precision.swd")
     out = open(file_swd, 'wb')

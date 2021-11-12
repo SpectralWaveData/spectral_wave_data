@@ -149,9 +149,9 @@ setup(
     long_description_content_type="text/markdown",
     # The project's main homepage.
     url="https://github.com/SpectralWaveData",
-    maintainer="Jens B. Helmers & Odin Gramstad, DNVGL",
-    maintainer_email="Jens.Bloch.Helmers@dnvgl.com",
-    license="MIT license - Copyright DNVGL 2019-2020",
+    maintainer="Jens B. Helmers & Odin Gramstad, DNV",
+    maintainer_email="Jens.Bloch.Helmers@dnv.com",
+    license="MIT license - Copyright DNV 2019-2021",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # How mature is this project? Common values are

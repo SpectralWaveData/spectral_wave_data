@@ -116,8 +116,8 @@ WAMOD
 .. figure:: figures/Wamod.png
    :align: left
 
-DNVGL has
-`released the program WAMOD <https://projects.dnvgl.com/sesam/status/Wamod/Wamod.html?id=WAMOD_12-DEC-2019_2&typ=new%20feature&showVersion=yes>`_
+DNV has
+`released the program WAMOD <https://www.dnv.com/services/hydrodynamic-analysis-of-non-linear-waves-in-random-sea-states-wamod-177704>`_
 for simulation of irregular seas based on HOS(M), the Higher-Order-Spectral-Method.
 The typical input is a wave spectrum and the output is a SWD file providing linear or nonlinear
 wave fields. Long and short crested seas can be simulated in finite or infinite water depth.

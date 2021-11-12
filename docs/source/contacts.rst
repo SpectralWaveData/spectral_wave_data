@@ -16,6 +16,6 @@ acknowledgement to your contribution.
 
 We appreciate your feedback.
 
- - Jens B. Helmers  (jens dot bloch dot helmers at dnvgl dot com)
- - Odin Gramstad (odin dot gramstad at dnvgl dot com)
+ - Jens B. Helmers  (jens dot bloch dot helmers at dnv dot com)
+ - Odin Gramstad (odin dot gramstad at dnv dot com)
 

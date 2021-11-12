@@ -130,7 +130,12 @@ class SpectralWaveData(object):
         >>> swd = SpectralWaveData('my_waves.swd', x0=0.0, y0=0.0, t0=0.0, beta=180.0)
 
         """
-        self.obj = swdlib.swd_api_allocate(file_swd.encode('ascii'), x0, y0, t0, beta,
+        if isinstance(file_swd, (str, bytes)):
+            file_swd = file_swd.encode('ascii')
+        else:
+            msg = "file_swd should be of type str or bytes. type(file_swd)=%s" % type(file_swd)
+            raise SwdInputValueError(msg)
+        self.obj = swdlib.swd_api_allocate(file_swd, x0, y0, t0, beta,
                                            rho, nsumx, nsumy, impl, ipol, norder, dc_bias)
         if swdlib.swd_api_error_raised(self.obj):
             id = swdlib.swd_api_error_get_id(self.obj)
@@ -147,7 +152,6 @@ class SpectralWaveData(object):
                 raise SwdAllocateError(msg)
             else:
                 raise SwdError(msg)
-        self._alive = True
 
     def __enter__(self):
         """Allow with statement.
@@ -164,6 +168,10 @@ class SpectralWaveData(object):
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         """Safe exit from with statement. Exceptions are raised if relevant"""
+        self.close()
+
+    def __del__(self):
+        """Called by the Python garbage collection when needed"""
         self.close()
 
     def update_time(self, time):
@@ -795,6 +803,10 @@ class SpectralWaveData(object):
         None
 
         """
-        if self._alive is True:
+        if hasattr(self, "obj"):
             swdlib.swd_api_close(self.obj)
-            self._alive = False
+            delattr(self, "obj")
+            # From now on the swdlib.swd_api_XXX methods will never be called because
+            # the argument self.obj does not exist. Consequently, e.g. swd.elev(...)
+            # will raise an AttributeError if such a method is called after swd.close().
+            # Hence, Illegal fatal memory access is avoided. Like OSError.

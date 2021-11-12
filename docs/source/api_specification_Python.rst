@@ -7,9 +7,9 @@ The Python package **spectral_wave_data** contains a module
 It defines the generic class :class:`SpectralWaveData`
 to be applied in applications based on Python-2 or Python-3.
 
------------------------
-Constructor and methods
------------------------
+---------------------
+The API specification
+---------------------
 
 Detailed documentation of class members is provided :doc:`here <api_specification_Python_methods>`.
 
@@ -18,6 +18,56 @@ Detailed documentation of class members is provided :doc:`here <api_specificatio
    :caption: autdoc_python
 
    api_specification_Python_methods
+
+----------------
+Releasing memory
+----------------
+
+In the Python implementation there are three different ways to release memory when the swd object is
+not needed anymore.
+
+^^^^^^^^^^^^^^^^
+The close method
+^^^^^^^^^^^^^^^^
+
+An explicit call to the :meth:`~spectral_wave_data.SpectralWaveData.close` method will destroy the
+internal structure of the object and free related memory. Other references to the object will also
+be useless.
+
+>>> swd = SpectralWaveData('my_waves.swd')
+>>> ...
+>>> swd2 = swd
+>>> swd.close()    # Also swd2 will now be useless
+
+Any usage of a closed object will throw an :exc:`AttributeError` exception.
+Subsequent calls to :meth:`~spectral_wave_data.SpectralWaveData.close` on the same object have no effects.
+
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Python garbage collection
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The Python garbage collection mechanism is fully supported. If an object goes out of scope and there
+are no more reference counts, Python may silently :meth:`~spectral_wave_data.SpectralWaveData.close` the object.
+The Python :attr:`del` statement is supported.
+
+>>> swd = SpectralWaveData('my_waves.swd')
+>>> ...
+>>> swd2 = swd
+>>> del swd   # The ref. count is not 0. Hence the underlying structure is not deallocated
+>>> del swd2  # No more ref. counts. The memory is automatically released
+
+^^^^^^^^^^^^^^^^^^
+The with statement
+^^^^^^^^^^^^^^^^^^
+
+The Python :attr:`with` statement is supported. Consequently, the object is automatically closed when
+the :attr:`with` block is completed, or if something goes wrong inside the :attr:`with` block.
+
+>>> with SpectralWaveData('my_waves.swd') as swd:
+>>> ...  swd.update_time(t=0.0)
+>>> ...  zeta = swd.elev(x=0.0, y=0.0)
+>>> print("The swd object is now closed. Related memory is released...")
+
 
 ------------------
 Exception handling
@@ -108,7 +158,7 @@ for the actual SWD class.
 The script swd_meta
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For convenience this Python wheel package includes the script :file:`swd_meta`
+For convenience the Python distribution includes the script :file:`swd_meta`
 listing the relevant metadata for a given SWD-file. It runs on Windows and Linux.
 
 In a terminal window with access to your installed **spectral_wave_data** package you can
