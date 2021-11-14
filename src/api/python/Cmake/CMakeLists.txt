@@ -6,6 +6,12 @@ set(LIB SpectralWaveData)
 
 project(${LIB} C Fortran)
 
+if(WIN32)
+    set_property (DIRECTORY PROPERTY VS_STARTUP_PROJECT ${LIB})
+    # To static link Intel libraries into SWD (not yet recognized by VS, to be set manually in VS. see Readme file)
+    set(CMAKE_FORTRAN_FLAGS "${CMAKE_FORTRAN_FLAGS_RELEASE} /libs:static")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
 set(CMAKE_BUILD_TYPE Release)
 
