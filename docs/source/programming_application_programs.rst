@@ -50,5 +50,4 @@ applications listed above. These scripts have been tested on Windows-10 and Linu
 .. note::
   For gfortran you need gfortran-10
   if you need the possibility to have several concurrent SWD objects connected to the same SWD file.
-  When the official gfortran-10 soon will be released our precompiled Linux libraries and
-  Python package will be recompiled and released. For Intel compilers this is not an issue.
+  For Intel compilers this is not an issue.
