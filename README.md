@@ -76,7 +76,7 @@ You may even implement it in another programing language.
 
 ## Does this really work?
 
-Prior to going open source, [DNV GL](https://www.dnvgl.com/) developed
+Prior to going open source, [DNV](https://www.dnv.com/) developed
 this concept and has applied it since 2015 in programs and projects, 
 also extensively in commercial projects. 
 A program based on the higher-order-spectral-method (HOSM) was developed 
@@ -156,7 +156,7 @@ expected to be identical with 1.0.0.
 The copyright owners have licensed this project under the MIT License. 
 See the [LICENSE.txt](./LICENSE.txt) file for details.
 
-The initial copyright owner is [DNV GL](https://www.dnvgl.com/).
+The initial copyright owner is [DNV](https://www.dnv.com/).
 However, other contributors do by law automatically get the copyright
 to their contributions. The Git version control serves as the documentation.
 
