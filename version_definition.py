@@ -45,7 +45,6 @@ p = re.compile(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'
 assert p.match(version_core)
 assert p.match(version_full)
 
-
 def make_fortran_version():
     """Implicit also C, C++ and Python"""
     path_fortran = os.path.join('src', 'api', 'fortran', 'swd_version.f90')
@@ -58,5 +57,13 @@ def make_fortran_version():
     out.close()
     print("A new file '%s' is created. You should recompile your SWD libraries..." % path_fortran)
 
+def make_python_version():
+    """Same version as C, C++ and Fortran"""
+    path = os.path.join("src", "api", "python", "distribution", "VERSION.dat")
+    out = open(path, 'w')
+    out.write("%s\n" % version_full)
+    out.close()
+
 if __name__ == "__main__":
     make_fortran_version()
+    make_python_version()
