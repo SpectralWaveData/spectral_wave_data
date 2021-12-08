@@ -619,21 +619,18 @@ end subroutine update_time
 
 !==============================================================================
 
-function SfunTaylor(z, j, dk, order) result(res) ! Value of Sfun(j) based on Taylor expansion
-real(knd),       intent(in) :: z   ! z-position (>0)
-integer,         intent(in) :: j   ! Index of Sfun
-real(wp),        intent(in) :: dk  ! self % dk
-integer,         intent(in) :: order ! self % order
-real(wp)                    :: res
+function SfunTaylor(kz, order) result(res) ! Value of Sfun(j) based on Taylor expansion
+real(wp), intent(in) :: kz    ! product of wave number and z.  (z>0)
+integer,  intent(in) :: order ! self % order
+real(wp)             :: res
 !
 integer :: p
-real(wp) :: ap1, apj
+real(wp) :: apj
 !
-ap1 = dk * z * j
 apj = 1.0_wp
 res = 1.0_wp
 do p = 1, order - 1
-    apj = apj * ap1 / p
+    apj = apj * kz / p
     res = res + apj
 end do
 !
@@ -641,16 +638,15 @@ end function SfunTaylor
 
 !==============================================================================
 
-function TfunTaylor(zwp, kjxjy, order) result(res) ! Value of Tfun based on Taylor expansion
-real(wp),  intent(in) :: zwp   ! z-position (>0)
-real(wp),  intent(in) :: kjxjy ! Actual k
-integer,   intent(in) :: order ! expansion order
-real(wp)              :: res
+function TfunTaylor(kz, order) result(res) ! Value of Tfun based on Taylor expansion
+real(wp), intent(in) :: kz    ! product of wave number and z.  (z>0)
+integer,  intent(in) :: order ! expansion order
+real(wp)             :: res
 !
 integer :: p
 real(wp) :: ap1, apj
 !
-ap1 = - kjxjy * zwp
+ap1 = -kz
 apj = 1.0_wp
 res = 1.0_wp
 do p = 1, order - 1
@@ -669,6 +665,7 @@ real(knd)             :: res   ! Potential at (x,y,z)
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: kz
 complex(wp) :: kappa1, Xfun
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -683,8 +680,9 @@ Rfun = 0.0_wp
 do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -711,6 +709,7 @@ real(knd)             :: res   ! Stream function at (x,y,z)
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zhfun, Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: kz
 complex(wp) :: kappa1, Xfun
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -725,8 +724,9 @@ Rfun = 0.0_wp
 do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -753,6 +753,7 @@ real(knd)                   :: res   ! Euler time derivative of potential at (x,
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun
+real(wp) :: kz
 complex(wp) :: kappa1, Xfun
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -767,8 +768,9 @@ Rfun = 0.0_wp
 do j = 1, self % nsumx
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -795,7 +797,7 @@ real(knd)             :: res(3) ! Particle velocity at (x,y,z)
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phi_xswd, phi_z, kval
+real(wp) :: phi_xswd, phi_z, kval, kz
 complex(wp) :: kappa1, Xfun, cx
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -813,8 +815,9 @@ do j = 1, self % nsumx
     kval = kval + self % dk
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -856,7 +859,7 @@ real(knd)                   :: res(6) ! Second order gradients of potential at (
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phi_xx_swd, phi_xz_swd, kval
+real(wp) :: phi_xx_swd, phi_xz_swd, kval, kz
 complex(wp) :: kappa1, Xfun, cx
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -874,8 +877,9 @@ do j = 1, self % nsumx
     kval = kval + self % dk
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -913,7 +917,7 @@ real(knd)             :: res(3) ! Euler acceleration at (x,y,z)
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phit_xswd, phit_z, kval
+real(wp) :: phit_xswd, phit_z, kval, kz
 complex(wp) :: kappa1, Xfun, cx
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -931,8 +935,9 @@ do j = 1, self % nsumx
     kval = kval + self % dk
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -986,7 +991,7 @@ real(knd)             :: res    ! Fully nonlinear pressure
 !
 integer :: j
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phi_xswd, phi_z, phi_t, kval
+real(wp) :: phi_xswd, phi_z, phi_t, kval, kz
 complex(wp) :: kappa1, Xfun, cx
 !
 xswd = self % x0 + x * self % cbeta + y * self % sbeta
@@ -1005,8 +1010,9 @@ do j = 1, self % nsumx
     kval = kval + self % dk
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
@@ -1039,7 +1045,7 @@ character(len=*), intent(in) :: csv    ! New output file
 !
 integer :: j, lucsv
 real(wp) :: xswd, kappa2, kappa3, Zfun, Ufun, Rfun, Sfun, Vfun, Tfun, Zfun_z
-real(wp) :: phi_xswd, phi_x, phi_y, phi_z, phi_t, kval, elev, prs
+real(wp) :: phi_xswd, phi_x, phi_y, phi_z, phi_t, kval, elev, prs, kz
 complex(wp) :: kappa1, Xfun, cx
 character(len=*), parameter :: err_proc = 'spectral_wave_data_shape_2_impl_1::convergence'
 character(len=250) :: err_msg(3)
@@ -1079,8 +1085,9 @@ do j = 1, self % nsumx
     kval = kval + self % dk
     Xfun = kappa1 * Xfun
     if (z > 0 .and. self % norder > 0) then
-        Sfun = SfunTaylor(z, j, self %dk, self % norder) 
-        Tfun = TfunTaylor(z, j*self %dk, self % norder)
+        kz = j * self %dk * z
+        Sfun = SfunTaylor(kz, self % norder) 
+        Tfun = TfunTaylor(kz, self % norder)
     else
         Sfun = kappa2 * Sfun
         Tfun = kappa3 * Tfun
