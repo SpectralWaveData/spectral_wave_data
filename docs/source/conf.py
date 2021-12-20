@@ -224,3 +224,5 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+bibtex_bibfiles = ["swd_references.bib"]
