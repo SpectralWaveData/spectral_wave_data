@@ -27,7 +27,7 @@ the file :file:`kind_values.f90` and the macro :attr:`SWD_API_FLOAT` should be u
    * - C++ Exceptions
      - Usage
    * - :exc:`SwdException`
-     - Base class for all SWD specific exceptions. It inherits from :exc:`std::exception`.
+     - Base class for all SWD specific exceptions. It inherits from :exc:`std::runtime_error`.
    * - :exc:`SwdFileCantOpenException`
      - Typical if SWD file is not an existing file.
    * - :exc:`SwdFileBinaryException`

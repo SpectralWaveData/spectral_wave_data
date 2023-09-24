@@ -15,10 +15,10 @@ Coded by: Jens B. Helmers DNVGL,  2019.08.11
 
 // Specific Exception Classes...
 
-class SwdException : public std::exception
+class SwdException : public std::runtime_error
 {
 public:
-    SwdException(const char* msg) : std::exception(msg) { }
+    SwdException(const char* msg) : std::runtime_error(msg) { }
 };
 
 class SwdFileCantOpenException : public SwdException
