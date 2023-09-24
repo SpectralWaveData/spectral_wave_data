@@ -35,12 +35,7 @@ and the Python whl file.
 Notes for building SWD(Python) for Linux:
 =========================================
 
-You may need libraries included by gfortran-10/gcc-10 or later. 
-(gfortran/9 and gcc-9 may still work but not version 8)
+You may need libraries included by gfortran-11/gcc-11 or later. 
+(older versions may still work but not version 8 and below)
 
-If you want to create a manylinux wheel, the "easiest" is to get an old
-version of linux, install Intel Fortran and compile the libSpectralWaveData.so
-file with ifort and the "-static-intel" flag to make it depend only on the
-(old) system files. You can then run the "auditwheel" utility to check whl
-file compatibility and make the wheel file "universal" (manylinux-compatible).
-Getting gfortran version 9+ to run on the old manylinux images is very hard.
+The new Intel OneAPI (free) should work fine. (Applied in the PyPI distribution of swd)

@@ -175,6 +175,11 @@ real(wp) :: time_f
 time_f = time
 call c_f_pointer(this, swd) ! Find corresponding Fortran object (swd)
 !
+if (.not.associated(swd)) then
+    print*, "PANIC from spectral_wave_data::update_time:"
+    print*, "The SWD object has not been constructed. Consequently, update_time can not be called!!!"
+    stop
+end if
 call swd % obj % update_time(time_f)
 !
 end subroutine update_time

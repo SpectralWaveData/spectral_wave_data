@@ -2,3 +2,5 @@ Sphinx>3.2
 sphinx-rtd-theme
 sphinxcontrib.bibtex
 sphinxcontrib-napoleon
+sphinx-changelog
+

@@ -55,7 +55,7 @@ provides API for several other programming languages:
 
 - ISO Fortran-2008
 - ISO C / C++
-- Python 2 and 3
+- Python 3 (support for 2.7 will be removed in the next release)
 
 The spectral_wave_data Python package mainly contains a class **SpectralWaveData**
 providing the official Python API. In addition, it provides a script **swd_meta**
@@ -118,8 +118,8 @@ To install spectral_wave_data from PyPI execute::
 
     pip install spectral_wave_data
     
-in your actual Python environment on Linux or Windows-10. 
-Python 2.7, 3.5 and above are supported.
+in your actual Python environment on Linux or Windows. 
+Python 2.7 and 3.x are supported.
 
 On Linux spectral_wave_data is compiled on the manylinux2014 platform to confirm
 with most modern Linux systems.

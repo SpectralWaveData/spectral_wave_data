@@ -5,15 +5,15 @@ rmdir /s /q Build_Linux
 mkdir Build_Linux
 cp CMakeLists.txt Build_Linux
 cd Build_Linux
-export FC=/usr/bin/gfortran-10
-export CC=/usr/bin/gcc-10
-export CXX=/usr/bin/g++-10
-export CPP=/usr/bin/cpp-10
+export FC=/usr/bin/gfortran-11
+export CC=/usr/bin/gcc-11
+export CXX=/usr/bin/g++-11
+export CPP=/usr/bin/cpp-11
 cmake -G "Unix Makefiles" ..
 make
 
 
-# Requires gfortran-10 or :   apt-get install gfortran-10  (may still work on gcc-9 too, but not gcc-8.)
+# Requires gfortran-11:   apt-get install gfortran-11  (may still work on old versions > 8.x.)
 # Should perhaps add the line
 # set(CMAKE_POSITION_INDEPENDENT_CODE ON) 
 # in CMakeLists.txt
@@ -32,4 +32,4 @@ make
 # #include "spectral_wave_data.h"    // Namespace convention: swd_api_*
 # at the top of the .c file
 # and compile by
-# gcc my_program.c -o my_program -L/usr/lib/gcc/x86_64-linux-gnu/10 libspectral_wave_data.a -lgfortran -lm -lquadmath -lm -O2 
+# gcc my_program.c -o my_program -L/usr/lib/gcc/x86_64-linux-gnu/11 libspectral_wave_data.a -lgfortran -lm -lquadmath -lm -O2 

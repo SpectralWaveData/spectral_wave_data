@@ -35,6 +35,13 @@ This is the documentation for the GitHub organization
    license.rst
    citation.rst
 
+Changelog
+=========
+
+.. toctree::
+   :maxdepth: 2
+
+   changelog.rst
 
 Indices and tables
 ==================

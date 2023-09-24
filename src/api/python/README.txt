@@ -30,7 +30,7 @@ Do the following steps on Windows:
 ---------------------------------------------------------------------------------------------
 Do the following steps on Linux:
 ---------------------------------------------------------------------------------------------
-1) run BuildWheelsLinux.bash to build wheels for both python 2.7 and python 3.6.
+1) run BuildWheelsLinux.bash to build wheels for both python 2.7 and python 3.
 2) Test new whl file(s): 
        pip uninstall spectral_wave_data (if already installed)
        pip install spectral_wave_data-*.whl

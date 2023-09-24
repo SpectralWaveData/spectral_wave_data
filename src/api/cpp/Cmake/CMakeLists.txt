@@ -1,7 +1,7 @@
 # Build a simple example of C++-program using
 # the Fortran spectral-wave-data static library which is build first
 
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.20)
 
 set(PROG swd_cpp_app_example)
 set(LIB spectral_wave_data)

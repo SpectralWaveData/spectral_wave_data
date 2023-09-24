@@ -2,7 +2,7 @@ rmdir /s /q build
 rmdir /s /q dist
 rmdir /s /q spectral_wave_data
 rmdir /s /q spectral_wave_data.egg-info
-delete /s /q MANIFEST.in
+del /q MANIFEST.in
 
 mkdir spectral_wave_data
 xcopy /e ..\spectral_wave_data\* spectral_wave_data\*

@@ -110,7 +110,7 @@ end subroutine  close
 
 function constructor(file, x0, y0, t0, beta, rho, nsumx, nsumy, ipol, norder, &
                      dc_bias) result(self)
-character(len=*),    intent(in)  :: file  ! File containing HOSM data
+character(len=*),    intent(in)  :: file  ! File containing SWD data
 real(knd),           intent(in)  :: x0,y0 ! Spatial seed
 real(knd),           intent(in)  :: t0    ! Temporal seed >=0
 real(knd),           intent(in)  :: beta  ! Wave heading (deg)
@@ -162,7 +162,7 @@ end if
 self % t0 = t0
 self % x0 = x0
 self % y0 = y0
-self % file = file
+self % file = trim(file)
         
 if (present(dc_bias)) then
     self % dc_bias = dc_bias

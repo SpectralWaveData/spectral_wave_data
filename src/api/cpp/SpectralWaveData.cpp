@@ -10,6 +10,11 @@ Ver-3.0:
 Coded by: Jens B. Helmers DNVGL,  2019.08.11
 */
 
+SpectralWaveData::SpectralWaveData()
+{/*Dummy default constructor to prepare object*/ 
+    obj = nullptr;
+};
+
 SpectralWaveData::SpectralWaveData(
     std::string file_swd,     // Name of actual SWD file
     real_swd x0, real_swd y0, // Parameters relating the SWD and application
@@ -72,6 +77,12 @@ SpectralWaveData::~SpectralWaveData() {
 // update current user time
 void SpectralWaveData::UpdateTime(real_swd time)
 {
+    if (this == nullptr) {
+        throw SwdException("SpectralWaveData::UpdateTime: SWD object is not initialized!");
+    }
+    else if (obj == nullptr) {
+        throw SwdException("SpectralWaveData::UpdateTime: SWD object is not initialized2!");
+    }
     swd_api_update_time(obj, time);
 	if (swd_api_error_raised(obj)) {
 		throw SwdException(swd_api_error_get_msg(obj));

@@ -26,7 +26,8 @@ structural engineering. A motivating example: A specialist tool from the field
 of oceanography can generate waves that can in turn be simulated in a fully
 viscous Navier-Stokes calculation (CFD) to assess, e.g., the motion of a
 floating wind turbine, without either of the tools knowing about each other.
-Our hope is that SWD can become a universal language for representing waves.
+Our hope is that SWD can become a universal language for representing 
+spectral waves.
 
 The SWD API can be utilized by academic and commercial software developers 
 to assess effects of ocean gravity waves due to the permissive MIT license
@@ -59,10 +60,9 @@ libraries for Windows and Linux.
 
 The source code is in this repository.
 
-Precompiled binaries and Python install (wheel) files can be downloaded from 
-the "Release" tab of this repository. 
+Precompiled binaries can be downloaded from the "Release" tab of this repository. 
 
-Using Windows-10 you may also install the Python distribution directly from
+Using Windows or Linux you may also install the Python distribution directly from
 [PyPI](https://pypi.org/project/spectral-wave-data/) using your command line::
 
     pip install spectral_wave_data
@@ -100,7 +100,7 @@ tools section of the
 
 ## Reference Wave fields
 
-For reference and research, a set of wave fields as described by this API will soon be provided 
+For reference and research, a set of wave fields as described by this API will be provided 
 in the Github repository __spectral_wave_data_waves__.
 
 Please consider a contribution to that repository if you have an 

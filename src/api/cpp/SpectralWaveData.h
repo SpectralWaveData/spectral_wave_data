@@ -15,10 +15,10 @@ Coded by: Jens B. Helmers DNVGL,  2019.08.11
 
 // Specific Exception Classes...
 
-class SwdException : public std::runtime_error
+class SwdException : public std::exception
 {
 public:
-    SwdException(const char* msg) : std::runtime_error(msg) { }
+    SwdException(const char* msg) : std::exception(msg) { }
 };
 
 class SwdFileCantOpenException : public SwdException
@@ -59,6 +59,9 @@ class SpectralWaveData
     void* obj; // Wrapper to the C-object of the ocean wave model
 
 public:
+    /*Dummy default constructor to prepare object*/
+    SpectralWaveData();
+
     SpectralWaveData(std::string file_swd, real_swd x0, real_swd y0, 
                      real_swd t0, real_swd beta, real_swd rho=1025.0, 
                      int nsumx=-1, int nsumy=-1, int impl=0, int ipol=0,

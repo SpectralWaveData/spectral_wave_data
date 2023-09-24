@@ -33,7 +33,7 @@ type, abstract :: spectral_wave_data
     ! Common attributes for all shape classes
     character(len=30)  :: prog ! Name of the program who created this swd file including version.
     character(len=20)  :: date ! Date and time this swd file was created
-    character(len=200) :: file ! Name of swd file
+    character(len=:), allocatable :: file ! Name of swd file
     integer            :: unit ! Unit number associated with swd file
     integer            :: fmt  ! Code to identify format of swd file.
     integer            :: shp  ! Index of actual spectral shape class

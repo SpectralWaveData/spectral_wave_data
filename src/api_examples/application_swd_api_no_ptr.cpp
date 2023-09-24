@@ -1,6 +1,5 @@
 #include <string>
 #include <iostream>
-#include <memory> /* for unique_ptr */
 #include <stdlib.h> /* for exit */
 
 #include "SpectralWaveData.h"    // Version for C++
@@ -32,18 +31,12 @@ int norder = 0;   // Apply same order as specified in SWD file
 // Optional: Control handling of zero-frequency components in SWD file
 bool dc_bias = false;   // Suppress contributions from zero-frequency
 
-//=============================
-// Constructor (C++ 14 syntax)
-//=============================
-std::unique_ptr<SpectralWaveData> swd;
-try {
-    swd = std::make_unique<SpectralWaveData>(file_swd, x0, y0, t0, beta,
-                                             rho, nsumx, nsumy, impl, ipol,
-                                             norder, dc_bias);
-} catch (SwdException& e) {
-    std::cerr << typeid(e).name() << std::endl << e.what() << std::endl;
-    throw;
-}
+//============
+// Constructor
+//============
+SpectralWaveData swd = SpectralWaveData(file_swd, x0, y0, t0, beta,
+                           rho, nsumx, nsumy, impl, ipol,
+                           norder, dc_bias);
 
 //======================================
 // Time domain simulation...
@@ -53,7 +46,7 @@ while (t < tmax) {
 
     // Tell the swd object current application time...
     try {
-        swd->UpdateTime(t);
+        swd.UpdateTime(t);
     } catch (SwdException& e) {  //Could be t > tmax from file.
         std::cerr << typeid(e).name() << std::endl << e.what() << std::endl;
         // If we will try again with a new value of t
@@ -67,50 +60,50 @@ while (t < tmax) {
     // Current set of provided kinematic quantities...
 
     // Velocity potential
-    double wave_potential = swd->Phi(x, y, z);
+    double wave_potential = swd.Phi(x, y, z);
 
     // Stream function
-    double stream_function = swd->Stream(x, y, z);
+    double stream_function = swd.Stream(x, y, z);
 
     // partial(phi) / partial t
-    double wave_ddt_potential = swd->DdtPhi(x, y, z);
+    double wave_ddt_potential = swd.DdtPhi(x, y, z);
 
     // Particle velocity  (vector_swd is a (x,y,z) struct)
-    vector_swd wave_velocity = swd->GradPhi(x, y, z);
+    vector_swd wave_velocity = swd.GradPhi(x, y, z);
 
     // 2nd order gradients of potential  (vector_2nd_phi_swd is a (xx,xy,xz,yy,yz,zz) struct)
-    vector_2nd_phi_swd  grad_phi_2nd = swd->GradPhi2nd(x, y, z);
+    vector_2nd_phi_swd  grad_phi_2nd = swd.GradPhi2nd(x, y, z);
 
     // Local acceleration
-    vector_swd euler_acceleration = swd->AccEuler(x, y, z);
+    vector_swd euler_acceleration = swd.AccEuler(x, y, z);
 
     // Particle acceleration
-    vector_swd particle_acceleration = swd->AccParticle(x, y, z);
+    vector_swd particle_acceleration = swd.AccParticle(x, y, z);
 
     // Wave elevation
-    double wave_elevation = swd->Elev(x, y);
+    double wave_elevation = swd.Elev(x, y);
 
     // Local time derivative of wave elevation
-    double wave_ddt_elevation = swd->DdtElev(x, y);
+    double wave_ddt_elevation = swd.DdtElev(x, y);
 
     // Spatial gradient of wave elevation
-    vector_swd wave_grad_elevation = swd->GradElev(x, y);
+    vector_swd wave_grad_elevation = swd.GradElev(x, y);
 
     // 2nd order gradients of elevation  (vector_2nd_elev_swd is a (xx,xy,yy) struct)
-    vector_2nd_elev_swd grad_elev_2nd = swd->GradElev2nd(x, y);
+    vector_2nd_elev_swd grad_elev_2nd = swd.GradElev2nd(x, y);
 
     // Total pressure
-    double wave_pressure = swd->Pressure(x, y, z);
+    double wave_pressure = swd.Pressure(x, y, z);
 
     // Distance from z=0 to sea floor (<0 if infinite)
-    double local_depth = swd->Bathymetry(x, y);
+    double local_depth = swd.Bathymetry(x, y);
 
     // Unit normal vector of sea floor into the ocean at(x, y)
-    vector_swd  nvec_sf = swd->BathymetryNvec(x, y);
+    vector_swd  nvec_sf = swd.BathymetryNvec(x, y);
 
     // For a specific(x, y, z) at this t, return a CSV file on how particle velocity,
     // elevation and pressure converge as a function of number of spectral components
-    swd->Convergence(x, y, z, "dump.csv");
+    swd.Convergence(x, y, z, "dump.csv");
 
     t += dt;
 }
@@ -118,7 +111,7 @@ while (t < tmax) {
 // To save storage for an interesting event you may create a new SWD file
 // containing only the time steps within a specified time window.
 // In this case we only care about the time interval [0.2, 0.9]
-swd->Strip(0.2, 0.9, "my_new.swd");
+swd.Strip(0.2, 0.9, "my_new.swd");
 
 /*
 ===========================================================
@@ -134,21 +127,21 @@ Five examples are given below...
 
 // Extract the cid string from the SWD file
 // (contains typical the content of the input file applied in the wave generator)
-std::string cid = swd->GetChr("cid");
+std::string cid = swd.GetChr("cid");
 
 // Name of actual implementation class
-std::string cls_name = swd->GetChr("class");
+std::string cls_name = swd.GetChr("class");
 
 // Extract shp parameter from object
-int shp = swd->GetInt("shp");
+int shp = swd.GetInt("shp");
 
 // Extract dc_bias parameter from object
-bool dc_bias2 = swd->GetBool("dc_bias");
+bool dc_bias2 = swd.GetBool("dc_bias");
 
 // Extract time step as applied in SWD file
-double dt_swd_file = swd->GetReal("dt");
+double dt_swd_file = swd.GetReal("dt");
 
-// Automatic destructor of swd unique_ptr
+// Automatic destructor of swd object
 
 return 0;
 }

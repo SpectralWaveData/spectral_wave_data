@@ -151,7 +151,8 @@ setup(
     url="https://github.com/SpectralWaveData",
     maintainer="Jens B. Helmers & Odin Gramstad, DNV",
     maintainer_email="Jens.Bloch.Helmers@dnv.com",
-    license="MIT license - Copyright DNV 2019-2021",
+    license="MIT license - Copyright DNV 2019-2023",
+    python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # How mature is this project? Common values are
@@ -168,12 +169,10 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3",
         # Supported operating systems
         "Operating System :: Microsoft :: Windows :: Windows 10",
+        "Operating System :: Microsoft :: Windows :: Windows 11",
         "Operating System :: POSIX :: Linux",
     ],
     # What does your project relate to?
