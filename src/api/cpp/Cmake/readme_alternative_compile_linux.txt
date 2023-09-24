@@ -5,10 +5,10 @@ rmdir /s /q Build_Linux
 mkdir Build_Linux
 cp CMakeLists.txt Build_Linux
 cd Build_Linux
-export FC=/usr/bin/gfortran-10
-export CC=/usr/bin/gcc-10
-export CXX=/usr/bin/g++-10
-export CPP=/usr/bin/cpp-10
+export FC=/usr/bin/gfortran-11
+export CC=/usr/bin/gcc-11
+export CXX=/usr/bin/g++-11
+export CPP=/usr/bin/cpp-11
 cmake -G "Unix Makefiles" ..
 make
 

@@ -122,7 +122,7 @@ for simulation of irregular seas based on HOS(M), the Higher-Order-Spectral-Meth
 The typical input is a wave spectrum and the output is a SWD file providing linear or nonlinear
 wave fields. Long and short crested seas can be simulated in finite or infinite water depth.
 
-Recent releases of WASIM can apply the SWD API for incident wave kinematics and Froude-Krylov forces.
+WASIM can apply the SWD API for incident wave kinematics and Froude-Krylov forces.
 There are no restrictions regarding which wave generator produced the SWD file.
 WASIM is a Rankine panel program for simulating wave induced responses of marine structures.
 

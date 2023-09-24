@@ -48,6 +48,6 @@ applications listed above. These scripts have been tested on Windows-10 and Linu
   If you apply Microsoft/Intel C/C++ compilers you should apply Intel Fortran.
 
 .. note::
-  For gfortran you need gfortran-10
-  if you need the possibility to have several concurrent SWD objects connected to the same SWD file.
+  For gfortran you need gfortran-10 or newer,
+  if you need to have several concurrent SWD objects connected to the same SWD file.
   For Intel compilers this is not an issue.

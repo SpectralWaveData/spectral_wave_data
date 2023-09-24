@@ -55,7 +55,7 @@ provides API for several other programming languages:
 
 - ISO Fortran-2008
 - ISO C / C++
-- Python 3 (support for 2.7 will be removed in the next release)
+- Python 3 and 2.7
 
 The spectral_wave_data Python package mainly contains a class **SpectralWaveData**
 providing the official Python API. In addition, it provides a script **swd_meta**
